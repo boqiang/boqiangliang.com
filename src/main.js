@@ -12,8 +12,8 @@ const app = document.querySelector('#app');
 app.innerHTML = `<div class="visual-backdrop" aria-hidden="true"></div><div class="moon-orb" aria-hidden="true"></div><canvas id="scene"></canvas><div class="weather-hud" aria-hidden="true"><span class="weather-state"></span><span></span></div><button class="sound-toggle" type="button" aria-label="ambient sound" aria-pressed="false"></button>`;
 const visualBackdrop = document.querySelector('.visual-backdrop');
 const moonOrb = document.querySelector('.moon-orb');
-const dayRoomImage = "url('/images/white-sea-study-seamless-window.png?v=0.0.18')";
-const nightRoomImage = "url('/images/white-sea-study-night-seamless-window.png?v=0.0.18')";
+const dayRoomImage = "url('/images/white-sea-study-open-window.png?v=0.0.19')";
+const nightRoomImage = "url('/images/white-sea-study-night-open-window.png?v=0.0.19')";
 function setRoomTime(night){
   visualBackdrop.style.backgroundImage = `linear-gradient(90deg,rgba(247,247,243,.18),rgba(247,247,243,.02) 48%,rgba(247,247,243,.16)),${night ? nightRoomImage : dayRoomImage}`;
 }
