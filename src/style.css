@@ -12,9 +12,10 @@ header,.scene-copy,.caption,footer,.book-panel{display:none!important}
 
 /* The room is a photographic scene; weather and time remain lightweight overlays. */
 .visual-backdrop{background-image:linear-gradient(90deg,rgba(247,247,243,.18),rgba(247,247,243,.02) 48%,rgba(247,247,243,.16)),url('/images/white-sea-study-hd.png?v=0.0.14')}
-.visual-backdrop::before,.visual-backdrop::after{content:"";position:absolute;top:6%;bottom:7%;width:20%;pointer-events:none;opacity:.48;mix-blend-mode:screen;filter:blur(.18px);background:repeating-linear-gradient(86deg,rgba(255,255,255,.04) 0 7%,rgba(255,255,255,.28) 10%,rgba(255,255,255,.07) 17%,rgba(255,255,255,.3) 23%,rgba(255,255,255,.04) 31%);transform-origin:top center;will-change:transform;animation:curtain-breeze 8s ease-in-out infinite}
-.visual-backdrop::before{left:27%;clip-path:polygon(25% 0,100% 0,78% 100%,0 100%);animation-delay:-2.7s}
-.visual-backdrop::after{right:24%;clip-path:polygon(0 0,76% 0,100% 100%,22% 100%);animation-delay:-6.1s;animation-duration:13s}
-@keyframes curtain-breeze{0%,100%{transform:translate3d(0,0,0) skewX(0deg) scaleX(1)}35%{transform:translate3d(3.2%,.7%,0) skewX(-2.4deg) scaleX(1.035)}68%{transform:translate3d(-2.8%,.2%,0) skewX(2deg) scaleX(.965)}}
+.visual-backdrop::before,.visual-backdrop::after{content:"";position:absolute;top:5%;bottom:5%;width:22%;pointer-events:none;opacity:.68;filter:drop-shadow(0 8px 10px rgba(84,72,58,.14));background:repeating-linear-gradient(88deg,rgba(255,255,255,.08) 0 5%,rgba(255,255,255,.62) 9%,rgba(210,198,180,.12) 14%,rgba(255,255,255,.42) 20%,rgba(177,163,145,.16) 25%,rgba(255,255,255,.58) 31%,rgba(255,255,255,.07) 38%),linear-gradient(90deg,rgba(255,255,255,.12),rgba(255,255,255,.5) 48%,rgba(173,158,141,.18));background-size:170% 100%,100% 100%;transform-origin:top center;will-change:transform,background-position;animation:curtain-breeze 9s ease-in-out infinite,curtain-folds 6.5s ease-in-out infinite}
+.visual-backdrop::before{left:26%;clip-path:polygon(25% 0,100% 0,79% 100%,0 100%);animation-delay:-2.7s}
+.visual-backdrop::after{right:23%;clip-path:polygon(0 0,76% 0,100% 100%,21% 100%);animation-delay:-6.1s;animation-duration:12s,8.5s}
+@keyframes curtain-breeze{0%,100%{transform:translate3d(0,0,0) skewX(0deg) scaleX(1)}35%{transform:translate3d(5%,1%,0) skewX(-3.5deg) scaleX(1.055)}68%{transform:translate3d(-4%,.3%,0) skewX(3deg) scaleX(.94)}}
+@keyframes curtain-folds{0%,100%{background-position:0 0,0 0}50%{background-position:28% 0,0 0}}
 @media (prefers-reduced-motion:reduce){.visual-backdrop::before,.visual-backdrop::after{animation:none}}
 .moon-orb{position:fixed;z-index:1;top:15vh;right:18vw;width:78px;height:78px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#fffdf0,#e8e1c8 62%,#bbb59f);box-shadow:0 0 34px rgba(255,248,210,.55);opacity:0;transition:opacity 2s,transform 4s ease-out;pointer-events:none}
