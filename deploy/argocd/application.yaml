@@ -16,7 +16,7 @@ spec:
     namespace: boqiangliang-com
   syncPolicy:
     automated:
-      selfHeal: true
       prune: false
+      selfHeal: true
     syncOptions:
-      - CreateNamespace=false
+      - CreateNamespace=true
