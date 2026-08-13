@@ -96,10 +96,22 @@ function updateSolarClock(now=new Date()){
   const parts=new Intl.DateTimeFormat('en-US',{timeZone:'America/Los_Angeles',hour:'numeric',minute:'numeric',second:'numeric',hour12:false}).formatToParts(now);
   const get=k=>Number(parts.find(p=>p.type===k)?.value||0); const solarHour=get('hour')+get('minute')/60+get('second')/3600;
   const daylight=Math.max(0,Math.sin((solarHour-6)/12*Math.PI)), night=daylight<.08;
+  const phase=solarHour<5.5?'night':solarHour<6.8?'dawn':solarHour<8.2?'sunrise':solarHour<16.8?'day':solarHour<18.5?'golden-hour':solarHour<20?'sunset':solarHour<21.2?'blue-hour':'night';
   const azimuth=(solarHour-12)/6*Math.PI; sun.position.set(Math.sin(azimuth)*8,2+daylight*9,-Math.cos(azimuth)*8); weatherLight.position.copy(sun.position).multiplyScalar(.8);
   const evening=night?.025:Math.max(.3,daylight);
   sun.intensity+=(currentMode.intensity*evening-sun.intensity)*.035; weatherLight.intensity+=(currentMode.intensity*.7*evening-weatherLight.intensity)*.035;
   const targetLamp=night?.72:currentMode.lamp; lamp.intensity+=(targetLamp-lamp.intensity)*.035;
+  const phaseLooks={
+    night:{tint:'rgba(12,30,45,.18)',filter:'saturate(.72) brightness(.68)'},
+    dawn:{tint:'rgba(238,152,126,.18)',filter:'saturate(1.06) brightness(.94)'},
+    sunrise:{tint:'rgba(247,185,123,.16)',filter:'saturate(1.12) brightness(1.02)'},
+    day:{tint:'rgba(255,255,255,0)',filter:'saturate(.96) brightness(1.04)'},
+    'golden-hour':{tint:'rgba(231,142,76,.18)',filter:'saturate(1.12) brightness(.98)'},
+    sunset:{tint:'rgba(177,74,55,.22)',filter:'saturate(1.16) brightness(.82)'},
+    'blue-hour':{tint:'rgba(44,76,104,.2)',filter:'saturate(.8) brightness(.74)'}
+  }[phase];
+  visualBackdrop.style.backgroundImage=`linear-gradient(90deg,${phaseLooks.tint},rgba(247,247,243,.02) 48%,${phaseLooks.tint}),${night ? nightRoomImage : dayRoomImage}`;
+  visualBackdrop.style.filter=currentMode.filter+' '+phaseLooks.filter;
   if(night!==lastNight){setRoomTime(night);lastNight=night;}
   moonOrb.style.opacity=String(Math.max(0,1-daylight*8)*.82);
   moonOrb.style.transform=`translate(${Math.cos((solarHour-12)/24*Math.PI*2)*22}vw,${Math.sin((solarHour-12)/24*Math.PI*2)*8}vh)`;
@@ -112,7 +124,7 @@ async function syncSanFranciscoWeather(){
     document.documentElement.style.setProperty('--weather-sky',mode.sky); document.documentElement.style.setProperty('--weather-sea',mode.sea); document.documentElement.style.setProperty('--weather-filter',mode.filter); document.body.classList.toggle('rain',current.weather_code>=51);
     sun.color.set(mode.light); weatherLight.color.set(mode.light); updateSolarClock();
     if(rainGain&&audioContext.state==='running') rainGain.gain.setTargetAtTime(current.weather_code>=51?.22:0,audioContext.currentTime,.8);
-    label.textContent=`旧金山 · ${mode.name} · ${Math.round(current.temperature_2m)}°C · ${night?'夜':'日'}间`;
+    label.textContent=`旧金山 · ${mode.name} · ${Math.round(current.temperature_2m)}°C`;
   }catch{ label.textContent='旧金山 · 天气暂不可用，保持宁静光线'; }
 }
 syncSanFranciscoWeather(); setInterval(syncSanFranciscoWeather,10*60*1000); setInterval(updateSolarClock,1000);
