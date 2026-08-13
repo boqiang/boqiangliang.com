@@ -12,3 +12,4 @@ header,.scene-copy,.caption,footer,.book-panel{display:none!important}
 
 /* The room is a photographic scene; weather and time remain lightweight overlays. */
 .visual-backdrop{background-image:linear-gradient(90deg,rgba(247,247,243,.18),rgba(247,247,243,.02) 48%,rgba(247,247,243,.16)),url('/images/white-sea-study-day.png?v=0.0.13')}
+.moon-orb{position:fixed;z-index:1;top:15vh;right:18vw;width:78px;height:78px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#fffdf0,#e8e1c8 62%,#bbb59f);box-shadow:0 0 34px rgba(255,248,210,.55);opacity:0;transition:opacity 2s,transform 4s ease-out;pointer-events:none}

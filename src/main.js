@@ -9,8 +9,9 @@ const categories = [
 ];
 
 const app = document.querySelector('#app');
-app.innerHTML = `<div class="visual-backdrop" aria-hidden="true"></div><canvas id="scene"></canvas><div class="weather-hud" aria-hidden="true"><span class="weather-state"></span><span></span></div><button class="sound-toggle" type="button" aria-label="ambient sound" aria-pressed="false"></button>`;
+app.innerHTML = `<div class="visual-backdrop" aria-hidden="true"></div><div class="moon-orb" aria-hidden="true"></div><canvas id="scene"></canvas><div class="weather-hud" aria-hidden="true"><span class="weather-state"></span><span></span></div><button class="sound-toggle" type="button" aria-label="ambient sound" aria-pressed="false"></button>`;
 const visualBackdrop = document.querySelector('.visual-backdrop');
+const moonOrb = document.querySelector('.moon-orb');
 const dayRoomImage = "url('/images/white-sea-study-day.png?v=0.0.13')";
 const nightRoomImage = "url('/images/white-sea-study-night.png?v=0.0.13')";
 function setRoomTime(night){
@@ -90,23 +91,31 @@ const weatherModes=[
   {test:c=>c<=67||c<=77, name:'细雨', sky:'#c7d3d8', sea:'#78949e', light:'#d5e0e8', intensity:.48, lamp:2.1, filter:'saturate(.55) brightness(.86)'},
   {test:c=>c<=99, name:'风雨', sky:'#aebdc5', sea:'#637f89', light:'#c8d7e4', intensity:.3, lamp:2.45, filter:'saturate(.48) brightness(.76)'}
 ];
+let currentMode=weatherModes[0], lastNight=false;
+function updateSolarClock(now=new Date()){
+  const parts=new Intl.DateTimeFormat('en-US',{timeZone:'America/Los_Angeles',hour:'numeric',minute:'numeric',second:'numeric',hour12:false}).formatToParts(now);
+  const get=k=>Number(parts.find(p=>p.type===k)?.value||0); const solarHour=get('hour')+get('minute')/60+get('second')/3600;
+  const daylight=Math.max(0,Math.sin((solarHour-6)/12*Math.PI)), night=daylight<.08;
+  const azimuth=(solarHour-12)/6*Math.PI; sun.position.set(Math.sin(azimuth)*8,2+daylight*9,-Math.cos(azimuth)*8); weatherLight.position.copy(sun.position).multiplyScalar(.8);
+  const evening=night?.025:Math.max(.3,daylight);
+  sun.intensity+=(currentMode.intensity*evening-sun.intensity)*.035; weatherLight.intensity+=(currentMode.intensity*.7*evening-weatherLight.intensity)*.035;
+  const targetLamp=night?.72:currentMode.lamp; lamp.intensity+=(targetLamp-lamp.intensity)*.035;
+  if(night!==lastNight){setRoomTime(night);lastNight=night;}
+  moonOrb.style.opacity=String(Math.max(0,1-daylight*8)*.82);
+  moonOrb.style.transform=`translate(${Math.cos((solarHour-12)/24*Math.PI*2)*22}vw,${Math.sin((solarHour-12)/24*Math.PI*2)*8}vh)`;
+}
 async function syncSanFranciscoWeather(){
   const label=document.querySelector('.weather-state');
   try{
     const r=await fetch('https://api.open-meteo.com/v1/forecast?latitude=37.7749&longitude=-122.4194&current=temperature_2m,weather_code,wind_speed_10m&timezone=America%2FLos_Angeles');
-    const data=await r.json(); const current=data.current; const mode=weatherModes.find(x=>x.test(current.weather_code))||weatherModes[1];
+    const data=await r.json(); const current=data.current; const mode=weatherModes.find(x=>x.test(current.weather_code))||weatherModes[1]; currentMode=mode;
     document.documentElement.style.setProperty('--weather-sky',mode.sky); document.documentElement.style.setProperty('--weather-sea',mode.sea); document.documentElement.style.setProperty('--weather-filter',mode.filter); document.body.classList.toggle('rain',current.weather_code>=51);
-    sun.color.set(mode.light); sun.intensity=mode.intensity; weatherLight.color.set(mode.light); weatherLight.intensity=mode.intensity*.7; lamp.intensity=mode.lamp;
-    const hour=Number(new Intl.DateTimeFormat('en-US',{timeZone:'America/Los_Angeles',hour:'numeric',hour12:false}).format(new Date())); const minute=Number(new Intl.DateTimeFormat('en-US',{timeZone:'America/Los_Angeles',minute:'numeric'}).format(new Date())); const solarHour=hour+minute/60; const daylight=Math.max(0,Math.sin((solarHour-6)/12*Math.PI)); const night=daylight<.08;
-    // The room faces south: the sun traverses the south-facing window during the day.
-    const azimuth=(solarHour-12)/6*Math.PI; sun.position.set(Math.sin(azimuth)*8,2+daylight*9,-Math.cos(azimuth)*8); weatherLight.position.copy(sun.position).multiplyScalar(.8);
-    const evening=night?0.025:Math.max(.3,daylight); sun.intensity*=evening; weatherLight.intensity*=evening; lamp.intensity=night?.72:mode.lamp;
-    setRoomTime(night);
+    sun.color.set(mode.light); weatherLight.color.set(mode.light); updateSolarClock();
     if(rainGain&&audioContext.state==='running') rainGain.gain.setTargetAtTime(current.weather_code>=51?.22:0,audioContext.currentTime,.8);
     label.textContent=`旧金山 · ${mode.name} · ${Math.round(current.temperature_2m)}°C · ${night?'夜':'日'}间`;
   }catch{ label.textContent='旧金山 · 天气暂不可用，保持宁静光线'; }
 }
-syncSanFranciscoWeather(); setInterval(syncSanFranciscoWeather,15*60*1000);
+syncSanFranciscoWeather(); setInterval(syncSanFranciscoWeather,10*60*1000); setInterval(updateSolarClock,1000);
 document.querySelector('#scene').addEventListener('pointerdown',e=>{downX=e.clientX;});
 document.querySelector('#scene').addEventListener('pointermove',e=>{ if(mode==='room'&&e.buttons) orbit=THREE.MathUtils.clamp((e.clientX-innerWidth/2)/innerWidth,-.12,.12); });
 function animate(t){ requestAnimationFrame(animate); if(mode==='room'){ const forward=new THREE.Vector3(Math.sin(yaw),0,Math.cos(yaw)); const right=new THREE.Vector3(Math.cos(yaw),0,-Math.sin(yaw)); const speed=.075; if(keys.has('KeyW')||keys.has('ArrowUp')) walk.x+=forward.x*speed,walk.z+=forward.z*speed; if(keys.has('KeyS')||keys.has('ArrowDown')) walk.x-=forward.x*speed,walk.z-=forward.z*speed; if(keys.has('KeyA')||keys.has('ArrowLeft')) walk.x-=right.x*speed,walk.z-=right.z*speed; if(keys.has('KeyD')||keys.has('ArrowRight')) walk.x+=right.x*speed,walk.z+=right.z*speed; walk.x=THREE.MathUtils.clamp(walk.x,-5.6,5.6); walk.z=THREE.MathUtils.clamp(walk.z,-.1,9.2); targetCam.set(walk.x,walk.y,walk.z); targetLook.set(walk.x+forward.x*3,2.7,walk.z+forward.z*3); } camera.position.lerp(targetCam, .045); const look=targetLook.clone(); look.x += orbit*3; camera.lookAt(look); room.rotation.y += (orbit-room.rotation.y)*.035; renderer.render(scene,camera); } animate();
