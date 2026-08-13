@@ -12,8 +12,19 @@ const app = document.querySelector('#app');
 app.innerHTML = `<div class="visual-backdrop" aria-hidden="true"></div><div class="moon-orb" aria-hidden="true"></div><canvas id="scene"></canvas><div class="weather-hud" aria-hidden="true"><span class="weather-state"></span><span></span></div><button class="sound-toggle" type="button" aria-label="ambient sound" aria-pressed="false"></button>`;
 const visualBackdrop = document.querySelector('.visual-backdrop');
 const moonOrb = document.querySelector('.moon-orb');
-const dayRoomImage = "url('/images/white-sea-study-open-window.png?v=0.0.20')";
-const nightRoomImage = "url('/images/white-sea-study-night-open-window.png?v=0.0.20')";
+const roomImages = {
+  day: "url('/images/white-sea-study-open-window.png?v=0.0.21')",
+  dawn: "url('/images/white-sea-study-dawn.png?v=0.0.21')",
+  sunset: "url('/images/white-sea-study-sunset.png?v=0.0.21')",
+  overcast: "url('/images/white-sea-study-overcast.png?v=0.0.21')",
+  fog: "url('/images/white-sea-study-fog.png?v=0.0.21')",
+  rain: "url('/images/white-sea-study-rain.png?v=0.0.21')",
+  storm: "url('/images/white-sea-study-storm.png?v=0.0.21')",
+  night: "url('/images/white-sea-study-night-open-window.png?v=0.0.21')",
+  moonFog: "url('/images/white-sea-study-moon-fog.png?v=0.0.21')"
+};
+const dayRoomImage = roomImages.day;
+const nightRoomImage = roomImages.night;
 function setRoomTime(night){
   visualBackdrop.style.backgroundImage = `linear-gradient(90deg,rgba(247,247,243,.18),rgba(247,247,243,.02) 48%,rgba(247,247,243,.16)),${night ? nightRoomImage : dayRoomImage}`;
 }
@@ -86,10 +97,11 @@ function toggleAmbience(){
 document.querySelector('.sound-toggle').addEventListener('click',toggleAmbience);
 addEventListener('pointerdown',()=>{ if(document.body.classList.contains('rain') && !audioContext) toggleAmbience(); },{once:true});
 const weatherModes=[
-  {test:c=>c===0, name:'晴朗', sky:'#e9f3f7', sea:'#a8c9d2', light:'#fff3d2', intensity:1.15, lamp:1.15, filter:'saturate(.92) brightness(1.04)'},
-  {test:c=>c<=3, name:'多云', sky:'#dfe7e8', sea:'#91afb8', light:'#e4e9e4', intensity:.72, lamp:1.55, filter:'saturate(.7) brightness(.98)'},
-  {test:c=>c<=67||c<=77, name:'细雨', sky:'#c7d3d8', sea:'#78949e', light:'#d5e0e8', intensity:.48, lamp:2.1, filter:'saturate(.55) brightness(.86)'},
-  {test:c=>c<=99, name:'风雨', sky:'#aebdc5', sea:'#637f89', light:'#c8d7e4', intensity:.3, lamp:2.45, filter:'saturate(.48) brightness(.76)'}
+  {test:c=>c===0, kind:'clear', name:'晴朗', sky:'#e9f3f7', sea:'#a8c9d2', light:'#fff3d2', intensity:1.15, lamp:1.15, filter:'saturate(.92) brightness(1.04)'},
+  {test:c=>c===45||c===48, kind:'fog', name:'雾天', sky:'#d9e0e2', sea:'#9eb8bf', light:'#dce6ea', intensity:.58, lamp:1.8, filter:'saturate(.62) brightness(.93)'},
+  {test:c=>c<=3, kind:'cloudy', name:'多云', sky:'#dfe7e8', sea:'#91afb8', light:'#e4e9e4', intensity:.72, lamp:1.55, filter:'saturate(.7) brightness(.98)'},
+  {test:c=>c<=67||c<=77, kind:'rain', name:'细雨', sky:'#c7d3d8', sea:'#78949e', light:'#d5e0e8', intensity:.48, lamp:2.1, filter:'saturate(.55) brightness(.86)'},
+  {test:c=>c<=99, kind:'storm', name:'风雨', sky:'#aebdc5', sea:'#637f89', light:'#c8d7e4', intensity:.3, lamp:2.45, filter:'saturate(.48) brightness(.76)'}
 ];
 let currentMode=weatherModes[0], lastNight=false;
 function updateSolarClock(now=new Date()){
@@ -110,9 +122,22 @@ function updateSolarClock(now=new Date()){
     sunset:{tint:'rgba(177,74,55,.22)',filter:'saturate(1.16) brightness(.82)'},
     'blue-hour':{tint:'rgba(44,76,104,.2)',filter:'saturate(.8) brightness(.74)'}
   }[phase];
-  visualBackdrop.style.backgroundImage=`linear-gradient(90deg,${phaseLooks.tint},rgba(247,247,243,.02) 48%,${phaseLooks.tint}),${night ? nightRoomImage : dayRoomImage}`;
+  const sceneImage = currentMode.kind === 'storm'
+    ? (night ? roomImages.moonFog : roomImages.storm)
+    : currentMode.kind === 'rain'
+      ? (night ? roomImages.moonFog : roomImages.rain)
+      : currentMode.kind === 'fog'
+        ? (night ? roomImages.moonFog : roomImages.fog)
+        : currentMode.kind === 'cloudy'
+          ? roomImages.overcast
+    : phase === 'dawn' || phase === 'sunrise'
+      ? roomImages.dawn
+      : phase === 'golden-hour' || phase === 'sunset'
+        ? roomImages.sunset
+        : night || phase === 'blue-hour' ? roomImages.night : roomImages.day;
+  visualBackdrop.style.backgroundImage=`linear-gradient(90deg,${phaseLooks.tint},rgba(247,247,243,.02) 48%,${phaseLooks.tint}),${sceneImage}`;
   visualBackdrop.style.filter=currentMode.filter+' '+phaseLooks.filter;
-  if(night!==lastNight){setRoomTime(night);lastNight=night;}
+  lastNight=night;
   moonOrb.style.opacity=String(Math.max(0,1-daylight*8)*.82);
   moonOrb.style.transform=`translate(${Math.cos((solarHour-12)/24*Math.PI*2)*22}vw,${Math.sin((solarHour-12)/24*Math.PI*2)*8}vh)`;
 }
