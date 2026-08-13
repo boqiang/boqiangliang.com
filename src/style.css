@@ -11,5 +11,10 @@ header,.scene-copy,.caption,footer,.book-panel{display:none!important}
 .rain::after{content:"";position:fixed;inset:0;z-index:2;pointer-events:none;opacity:.16;background-image:repeating-linear-gradient(104deg,transparent 0 18px,rgba(215,235,242,.6) 19px,transparent 20px 42px);background-size:160px 180px;animation:rainfall .8s linear infinite}@keyframes rainfall{to{background-position:35px 180px}}
 
 /* The room is a photographic scene; weather and time remain lightweight overlays. */
-.visual-backdrop{background-image:linear-gradient(90deg,rgba(247,247,243,.18),rgba(247,247,243,.02) 48%,rgba(247,247,243,.16)),url('/images/white-sea-study-day.png?v=0.0.13')}
+.visual-backdrop{background-image:linear-gradient(90deg,rgba(247,247,243,.18),rgba(247,247,243,.02) 48%,rgba(247,247,243,.16)),url('/images/white-sea-study-hd.png?v=0.0.14')}
+.visual-backdrop::before,.visual-backdrop::after{content:"";position:absolute;top:7%;bottom:8%;width:18%;pointer-events:none;opacity:.22;mix-blend-mode:screen;filter:blur(.25px);background:linear-gradient(90deg,rgba(255,255,255,.05),rgba(255,255,255,.34) 38%,rgba(255,255,255,.06) 72%,rgba(255,255,255,0));transform-origin:top center;will-change:transform;animation:curtain-breeze 11s ease-in-out infinite}
+.visual-backdrop::before{left:27%;clip-path:polygon(25% 0,100% 0,78% 100%,0 100%);animation-delay:-2.7s}
+.visual-backdrop::after{right:24%;clip-path:polygon(0 0,76% 0,100% 100%,22% 100%);animation-delay:-6.1s;animation-duration:13s}
+@keyframes curtain-breeze{0%,100%{transform:translate3d(0,0,0) skewX(0deg) scaleX(1)}35%{transform:translate3d(1.4%,.4%,0) skewX(-1.4deg) scaleX(1.015)}68%{transform:translate3d(-1.1%,.1%,0) skewX(1.1deg) scaleX(.99)}}
+@media (prefers-reduced-motion:reduce){.visual-backdrop::before,.visual-backdrop::after{animation:none}}
 .moon-orb{position:fixed;z-index:1;top:15vh;right:18vw;width:78px;height:78px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#fffdf0,#e8e1c8 62%,#bbb59f);box-shadow:0 0 34px rgba(255,248,210,.55);opacity:0;transition:opacity 2s,transform 4s ease-out;pointer-events:none}
