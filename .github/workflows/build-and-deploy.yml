@@ -1,0 +1,65 @@
+name: Build image and update GitOps
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - deploy/kubernetes/deployment.yaml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  REGISTRY: 192.168.0.201:5000
+  IMAGE_NAME: boqiangliang-com/web
+
+jobs:
+  build-publish-update:
+    # This runner must be on the Kubernetes LAN and have Docker configured
+    # with 192.168.0.201:5000 as an insecure registry.
+    runs-on: [self-hosted, linux]
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Build and push immutable image
+        env:
+          IMAGE: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          TAG: sha-${{ github.sha }}
+        run: |
+          set -euo pipefail
+          docker build --pull -t "${IMAGE}:${TAG}" .
+          docker push "${IMAGE}:${TAG}"
+
+      - name: Update the Argo CD source manifest
+        env:
+          IMAGE: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          TAG: sha-${{ github.sha }}
+        run: |
+          set -euo pipefail
+          python3 - "${IMAGE}:${TAG}" <<'PY'
+          from pathlib import Path
+          import sys
+
+          path = Path("deploy/kubernetes/deployment.yaml")
+          text = path.read_text()
+          lines = text.splitlines()
+          for index, line in enumerate(lines):
+              if line.lstrip().startswith("image:"):
+                  indent = line[:len(line) - len(line.lstrip())]
+                  lines[index] = f"{indent}image: {sys.argv[1]}"
+                  break
+          else:
+              raise SystemExit("deployment image field not found")
+          path.write_text("\n".join(lines) + "\n")
+          PY
+
+      - name: Commit the GitOps revision
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add deploy/kubernetes/deployment.yaml
+          git diff --cached --quiet || git commit -m "chore: deploy ${GITHUB_SHA::12} [skip ci]"
+          git push
