@@ -18,7 +18,7 @@ jobs:
   build-publish-update:
     # This runner must be on the Kubernetes LAN and have Docker configured
     # with 192.168.0.201:5000 as an insecure registry.
-    runs-on: [self-hosted, linux]
+    runs-on: [self-hosted, macOS, ARM64]
     steps:
       - name: Check out source
         uses: actions/checkout@v4
