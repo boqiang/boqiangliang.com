@@ -18,7 +18,7 @@ spec:
       automountServiceAccountToken: false
       containers:
         - name: web
-          image: 192.168.0.201:5000/boqiangliang-com/web:sha-c789ff9e3076b38fed7feb122699801dab0127aa
+          image: 192.168.0.201:5000/boqiangliang-com/web:sha-ea6969df149a5c4bd66140d40c1ceaa546ea9f75
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
