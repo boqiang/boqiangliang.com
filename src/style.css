@@ -33,6 +33,11 @@ header,.scene-copy,.caption,footer,.book-panel{display:none!important}
 .moon-orb[data-phase="waning-gibbous"]::after{transform:translateX(70%)}
 .moon-orb[data-phase="last-quarter"]::after{transform:translateX(50%)}
 .moon-orb[data-phase="waning-crescent"]::after{transform:translateX(45%)}
+
+/* Keep the pre-JavaScript frame neutral. The live scene selects the correct
+   time/weather image before the first settled paint, so no daytime fallback
+   can flash on a night refresh. */
+.visual-backdrop{background-image:none;background-color:#101b22}
 .moon-orb[data-weather="cloudy"]{filter:blur(1px)}
 .moon-orb[data-weather="fog"]{filter:blur(2.5px)}
 .moon-orb[data-weather="rain"]{filter:blur(3px)}
