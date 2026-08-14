@@ -21,8 +21,8 @@ const roomImages = {
   fog: "url('/images/white-sea-study-fog.png?v=0.0.23')",
   rain: "url('/images/white-sea-study-rain.png?v=0.0.23')",
   storm: "url('/images/white-sea-study-storm.png?v=0.0.23')",
-  night: "url('/images/white-sea-study-night-open-window.png?v=0.0.23')",
-  moonFog: "url('/images/white-sea-study-moon-fog.png?v=0.0.23')"
+  night: "url('/images/white-sea-study-night-open-window-no-moon.png?v=0.0.24')",
+  moonFog: "url('/images/white-sea-study-moon-fog-no-moon.png?v=0.0.24')"
 };
 const dayRoomImage = roomImages.day;
 const nightRoomImage = roomImages.night;
@@ -38,7 +38,6 @@ function setBackdropImage(cssImage){
 function setRoomTime(night){
   setBackdropImage(`linear-gradient(90deg,rgba(247,247,243,.18),rgba(247,247,243,.02) 48%,rgba(247,247,243,.16)),${night ? nightRoomImage : dayRoomImage}`);
 }
-setRoomTime(false);
 
 const scene = new THREE.Scene();
 scene.background = null;
@@ -191,6 +190,9 @@ async function syncSanFranciscoWeather(){
     label.textContent=`旧金山 · ${mode.name} · ${Math.round(current.temperature_2m)}°C`;
   }catch{ label.textContent='旧金山 · 天气暂不可用，保持宁静光线'; }
 }
+// Paint the current San Francisco time immediately. Weather is fetched in
+// parallel and will refine the scene once it arrives; no daytime placeholder.
+updateSolarClock(new Date());
 syncSanFranciscoWeather();
 setInterval(syncSanFranciscoWeather,10*60*1000);
 setInterval(updateSolarClock,1000);
