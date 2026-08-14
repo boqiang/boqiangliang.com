@@ -15,14 +15,14 @@ const roomPhoto = document.querySelector('.room-photo');
 const moonOrb = document.querySelector('.moon-orb');
 const roomImages = {
   // Neutral master: same room geometry for every later lighting/weather pass.
-  day: "url('/images/white-sea-study-master.png?v=0.0.25')",
-  dawn: "url('/images/white-sea-study-dawn.png?v=0.0.23')",
-  sunset: "url('/images/white-sea-study-sunset.png?v=0.0.23')",
+  day: "url('/images/white-sea-study-master.png?v=0.0.28')",
+  dawn: "url('/images/white-sea-study-blue-hour.png?v=0.0.28')",
+  sunset: "url('/images/white-sea-study-golden-hour.png?v=0.0.28')",
   overcast: "url('/images/white-sea-study-overcast.png?v=0.0.23')",
   fog: "url('/images/white-sea-study-fog.png?v=0.0.23')",
   rain: "url('/images/white-sea-study-rain.png?v=0.0.23')",
   storm: "url('/images/white-sea-study-storm.png?v=0.0.23')",
-  night: "url('/images/white-sea-study-night-open-window-no-moon.png?v=0.0.24')",
+  night: "url('/images/white-sea-study-night.png?v=0.0.28')",
   moonFog: "url('/images/white-sea-study-moon-fog-no-moon.png?v=0.0.24')"
 };
 const dayRoomImage = roomImages.day;
@@ -148,11 +148,11 @@ function updateSolarClock(now=new Date()){
   // stable day/night scene so a guessed clear-sky sunset cannot flash.
   const initialPhase = weatherReady ? phase : (night ? 'night' : 'day');
   const sceneImage = currentMode.kind === 'storm'
-    ? (night ? roomImages.moonFog : roomImages.storm)
+    ? (night ? roomImages.night : roomImages.storm)
     : currentMode.kind === 'rain'
-      ? (night ? roomImages.moonFog : roomImages.rain)
+      ? (night ? roomImages.night : roomImages.rain)
       : currentMode.kind === 'fog'
-        ? (night ? roomImages.moonFog : roomImages.fog)
+        ? (night ? roomImages.night : roomImages.fog)
         : currentMode.kind === 'cloudy'
           ? roomImages.overcast
     : initialPhase === 'dawn' || initialPhase === 'sunrise'
