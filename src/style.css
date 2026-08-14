@@ -93,3 +93,5 @@ body[data-cloud="storm"] .cloud-layer{opacity:.42;filter:blur(15px);mix-blend-mo
 .map-rank-item,.map-color-item{white-space:nowrap}.map-color-item span{font-size:0}.map-color-item span::after{font-size:8px}.map-color-item:nth-child(1) span::after{content:'≤10'}.map-color-item:nth-child(2) span::after{content:'>10'}.map-color-item:nth-child(3) span::after{content:'>100'}.map-color-item:nth-child(4) span::after{content:'>1K'}.map-color-item:nth-child(5) span::after{content:'>10K'}.map-color-item:nth-child(6) span::after{content:'>100K'}.map-color-item:nth-child(7) span::after{content:'>1M'}.map-color-item:nth-child(8) span::after{content:'>10M'}.map-color-item:nth-child(9) span::after{content:'>100M'}.map-color-item:nth-child(10) span::after{content:'>1B'}
 /* Country heat colors are supplied per path by the visitor map renderer. */
 .map-land path{fill:hsl(var(--country-hue) 72% 58% / var(--country-alpha))}
+/* The range labels are rendered as real text by the map renderer. */
+.map-color-item span{font-size:8px}.map-color-item span::after{content:none}
