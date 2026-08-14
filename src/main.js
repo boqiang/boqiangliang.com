@@ -9,8 +9,9 @@ const categories = [
 ];
 
 const app = document.querySelector('#app');
-app.innerHTML = `<div class="visual-backdrop" aria-hidden="true"></div><div class="moon-orb" aria-hidden="true"></div><canvas id="scene"></canvas><div class="weather-hud" aria-hidden="true"><span class="weather-state"></span><span></span></div><button class="sound-toggle" type="button" aria-label="ambient sound" aria-pressed="false"></button>`;
+app.innerHTML = `<div class="visual-backdrop" aria-hidden="true"><img class="room-photo" alt="" /></div><div class="moon-orb" aria-hidden="true"></div><canvas id="scene"></canvas><div class="weather-hud" aria-hidden="true"><span class="weather-state"></span><span></span></div><button class="sound-toggle" type="button" aria-label="ambient sound" aria-pressed="false"></button>`;
 const visualBackdrop = document.querySelector('.visual-backdrop');
+const roomPhoto = document.querySelector('.room-photo');
 const moonOrb = document.querySelector('.moon-orb');
 const roomImages = {
   day: "url('/images/white-sea-study-open-window.png?v=0.0.21')",
@@ -25,8 +26,13 @@ const roomImages = {
 };
 const dayRoomImage = roomImages.day;
 const nightRoomImage = roomImages.night;
+function setBackdropImage(cssImage){
+  visualBackdrop.style.backgroundImage = cssImage;
+  const source = cssImage.match(/url\(['\"]?([^'\")]+)['\"]?\)/)?.[1];
+  if (source) roomPhoto.src = source;
+}
 function setRoomTime(night){
-  visualBackdrop.style.backgroundImage = `linear-gradient(90deg,rgba(247,247,243,.18),rgba(247,247,243,.02) 48%,rgba(247,247,243,.16)),${night ? nightRoomImage : dayRoomImage}`;
+  setBackdropImage(`linear-gradient(90deg,rgba(247,247,243,.18),rgba(247,247,243,.02) 48%,rgba(247,247,243,.16)),${night ? nightRoomImage : dayRoomImage}`);
 }
 setRoomTime(false);
 
@@ -135,7 +141,7 @@ function updateSolarClock(now=new Date()){
       : phase === 'golden-hour' || phase === 'sunset'
         ? roomImages.sunset
         : night || phase === 'blue-hour' ? roomImages.night : roomImages.day;
-  visualBackdrop.style.backgroundImage=`linear-gradient(90deg,${phaseLooks.tint},rgba(247,247,243,.02) 48%,${phaseLooks.tint}),${sceneImage}`;
+  setBackdropImage(`linear-gradient(90deg,${phaseLooks.tint},rgba(247,247,243,.02) 48%,${phaseLooks.tint}),${sceneImage}`);
   visualBackdrop.style.filter=currentMode.filter+' '+phaseLooks.filter;
   lastNight=night;
   moonOrb.style.opacity=String(Math.max(0,1-daylight*8)*.82);

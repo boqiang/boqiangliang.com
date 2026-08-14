@@ -1,5 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Playfair+Display:ital,wght@0,500;1,500&display=swap');
 .visual-backdrop{position:fixed;inset:0;z-index:0;background:linear-gradient(90deg,rgba(247,247,243,.18),rgba(247,247,243,.02) 48%,rgba(247,247,243,.16)),url('/images/white-sea-study-v2.png?v=0.0.11') center/cover no-repeat;filter:saturate(.9)}
+.room-photo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;z-index:0}
 #scene{display:none}
 .grain{z-index:2!important}
 header,footer,.scene-copy,.caption,.book-panel,.sound-toggle{z-index:3!important}
