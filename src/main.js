@@ -98,21 +98,22 @@ function toggleAmbience(){
     const master=audioContext.createGain(); master.gain.value=.045; master.connect(audioContext.destination);
     const low=audioContext.createOscillator(); low.type='sine'; low.frequency.value=92;
     const high=audioContext.createOscillator(); high.type='sine'; high.frequency.value=138;
-    const toneGain=audioContext.createGain(); toneGain.gain.value=.18; low.connect(toneGain); high.connect(toneGain); toneGain.connect(master);
+    // Keep the room tone barely audible; the ocean should be the foreground sound.
+    const toneGain=audioContext.createGain(); toneGain.gain.value=.018; low.connect(toneGain); high.connect(toneGain); toneGain.connect(master);
     const buffer=audioContext.createBuffer(1,audioContext.sampleRate*2,audioContext.sampleRate); const data=buffer.getChannelData(0); for(let i=0;i<data.length;i++) data[i]=(Math.random()*2-1)*.25;
     const hush=audioContext.createBufferSource(); hush.buffer=buffer; hush.loop=true; const filter=audioContext.createBiquadFilter(); filter.type='lowpass'; filter.frequency.value=850; const hushGain=audioContext.createGain(); hushGain.gain.value=.12;
     hush.connect(filter); filter.connect(hushGain); hushGain.connect(master);
     // A low, slowly breathing noise bed gives the sea a natural wash. The
     // LFO makes each swell arrive and recede instead of sounding like a flat hiss.
     const ocean=audioContext.createBufferSource(); ocean.buffer=buffer; ocean.loop=true;
-    const oceanFilter=audioContext.createBiquadFilter(); oceanFilter.type='lowpass'; oceanFilter.frequency.value=620; oceanFilter.Q.value=.35;
-    oceanGain=audioContext.createGain(); oceanGain.gain.value=.025;
+    const oceanFilter=audioContext.createBiquadFilter(); oceanFilter.type='lowpass'; oceanFilter.frequency.value=900; oceanFilter.Q.value=.3;
+    oceanGain=audioContext.createGain(); oceanGain.gain.value=.11;
     ocean.connect(oceanFilter); oceanFilter.connect(oceanGain); oceanGain.connect(master);
     const swell=audioContext.createOscillator(); swell.type='sine'; swell.frequency.value=.075;
-    const swellDepth=audioContext.createGain(); swellDepth.gain.value=.022; swell.connect(swellDepth); swellDepth.connect(oceanGain.gain);
+    const swellDepth=audioContext.createGain(); swellDepth.gain.value=.085; swell.connect(swellDepth); swellDepth.connect(oceanGain.gain);
     const foam=audioContext.createBufferSource(); foam.buffer=buffer; foam.loop=true;
-    const foamFilter=audioContext.createBiquadFilter(); foamFilter.type='bandpass'; foamFilter.frequency.value=980; foamFilter.Q.value=.55;
-    const foamGain=audioContext.createGain(); foamGain.gain.value=.006; foam.connect(foamFilter); foamFilter.connect(foamGain); foamGain.connect(master);
+    const foamFilter=audioContext.createBiquadFilter(); foamFilter.type='bandpass'; foamFilter.frequency.value=1450; foamFilter.Q.value=.45;
+    const foamGain=audioContext.createGain(); foamGain.gain.value=.06; foam.connect(foamFilter); foamFilter.connect(foamGain); foamGain.connect(master);
     const rain=audioContext.createBufferSource(); rain.buffer=buffer; rain.loop=true; const rainFilter=audioContext.createBiquadFilter(); rainFilter.type='bandpass'; rainFilter.frequency.value=3200; rainFilter.Q.value=.5; rainGain=audioContext.createGain(); rainGain.gain.value=0; rain.connect(rainFilter); rainFilter.connect(rainGain); rainGain.connect(master);
     low.start(); high.start(); hush.start(); ocean.start(); swell.start(); foam.start(); rain.start(); ambience={master};
   }
