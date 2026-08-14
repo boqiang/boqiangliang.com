@@ -131,7 +131,16 @@ const weatherModes=[
 let currentMode=weatherModes[0], lastNight=false, weatherReady=false;
 let sunriseMs=0, sunsetMs=0;
 let currentWeather={ code:0, cloudCover:0, wind:0, precipitation:0 };
-let liveSky={ solarAltitude:0, solarAzimuth:0, lunarAltitude:0, lunarAzimuth:0, lunarPhase:0, lunarIllumination:0, night:false, weatherVisibility:1, phase:'day' };
+const SF_LATITUDE=37.7749*Math.PI/180, SF_LONGITUDE=-122.4194;
+const brightStars=[
+  ["Sirius",6.7525,-16.7161,-1.46],["Canopus",6.3992,-52.6957,-0.74],["Arcturus",14.261,19.182,-0.05],["Vega",18.6156,38.783,0.03],["Capella",5.2782,45.998,0.08],["Rigel",5.2423,-8.202,0.13],["Procyon",7.655,5.225,0.38],["Betelgeuse",5.9195,7.407,0.50],["Altair",19.8464,8.868,0.77],["Aldebaran",4.5987,16.509,0.85],["Spica",13.4199,-11.161,0.98],["Antares",16.4901,-26.432,1.06],["Pollux",7.7553,28.026,1.14],["Fomalhaut",22.9608,-29.622,1.16],["Deneb",20.6905,45.280,1.25],["Regulus",10.1395,11.967,1.35],["Castor",7.5767,31.888,1.58],["Bellatrix",5.4189,6.350,1.64],["Alnilam",5.6036,-1.202,1.69],["Alnitak",5.6793,-1.943,1.74],["Mirfak",3.4054,49.861,1.79],["Saiph",5.7959,-9.670,2.06],["Polaris",2.5303,89.264,1.98],["Hamal",2.1195,23.462,2.00],["Alphard",9.4598,-8.658,1.98],["Adhara",6.9771,-28.972,1.50],["Mimosa",12.7953,-59.689,1.25],["Shaula",17.5601,-37.104,1.62]
+];
+function visibleStarMap(date){
+  const jd=date.getTime()/86400000+2440587.5, d=jd-2451545;
+  const gmst=((280.46061837+360.98564736629*d)%360+360)%360, lst=((gmst+SF_LONGITUDE)%360+360)%360;
+  return brightStars.map(([name,ra,dec,mag])=>{ const decRad=dec*Math.PI/180, hourAngle=((lst-ra*15+540)%360-180)*Math.PI/180; const altitude=Math.asin(Math.sin(SF_LATITUDE)*Math.sin(decRad)+Math.cos(SF_LATITUDE)*Math.cos(decRad)*Math.cos(hourAngle)); const azimuth=Math.atan2(Math.sin(hourAngle),Math.cos(hourAngle)*Math.sin(SF_LATITUDE)-Math.tan(decRad)*Math.cos(SF_LATITUDE)); return {name,mag,altitude,azimuth,brightness:Math.max(.12,Math.min(1,1-(mag+1.1)/5.8))}; }).filter(star=>star.altitude>8*Math.PI/180);
+}
+let liveSky={ solarAltitude:0, solarAzimuth:0, lunarAltitude:0, lunarAzimuth:0, lunarPhase:0, lunarIllumination:0, night:false, weatherVisibility:1, phase:'day', visibleStars:[] };
 
 function resizeWindowRenderer(){
   const ratio=innerWidth<700?Math.min(devicePixelRatio||1,1.25):Math.min(devicePixelRatio||1,2);
@@ -149,15 +158,14 @@ function renderWindowScene(time){
   // Keep the high-resolution room photograph visible; this canvas is a
   // transparent, physically-timed atmosphere layer over the open window.
   const cloudAmount=Math.max(0,Math.min(1,(currentWeather.cloudCover||0)/100));
-  // A sparse, deterministic star field appears only in a clear night sky.
-  // The slow pulse keeps it alive without making the room feel animated.
+  // Show only catalogued stars currently above the San Francisco horizon.
   if(liveSky.night){
-    const starCount=mobile?24:52, visibility=liveSky.weatherVisibility*(1-cloudAmount*.72);
+    const visibility=liveSky.weatherVisibility*(1-cloudAmount*.72);
     c.save(); c.fillStyle='#f4f0d5';
-    for(let i=0;i<starCount;i++){
-      const sx=w*(.30+((i*47)%997)/997*.42), sy=h*(.08+((i*83)%431)/431*.34);
-      const twinkle=.45+.35*Math.sin(time*.00035+i*1.73);
-      c.globalAlpha=visibility*.42*twinkle; c.beginPath(); c.arc(sx,sy,(i%5===0?1.15:.65),0,Math.PI*2); c.fill();
+    for(const star of liveSky.visibleStars){
+      const sx=w*.5+Math.sin(star.azimuth)*w*.42, sy=h*.47-Math.sin(star.altitude)*h*.38;
+      if(sx<w*.28||sx>w*.76||sy<0||sy>h*.46) continue;
+      c.globalAlpha=visibility*(.28+.65*star.brightness); c.beginPath(); c.arc(sx,sy,mobile?.45+star.brightness*.65:.55+star.brightness*1.05,0,Math.PI*2); c.fill();
     }
     c.restore();
   }
@@ -185,7 +193,7 @@ function updateSolarClock(now=new Date()){
   const synodicMonth=29.530588853;
   const lunarPhase=((now.getTime()-knownNewMoon)/86400000/synodicMonth%1+1)%1;
   const lunarIllumination=(1-Math.cos(lunarPhase*Math.PI*2))/2;
-  const latitude=37.7749*Math.PI/180;
+  const latitude=SF_LATITUDE;
   const seasonalPhase=((now.getTime()-Date.UTC(now.getUTCFullYear(),0,1))/86400000/365.2422)*Math.PI*2;
   const clockPhase=solarHour<5.5?'night':solarHour<6.8?'dawn':solarHour<8.2?'sunrise':solarHour<16.8?'day':solarHour<18.5?'golden-hour':solarHour<20?'sunset':solarHour<21.2?'blue-hour':'night';
   // Use the actual SF sunset as the boundary. Blue hour lasts about 35
@@ -246,7 +254,7 @@ function updateSolarClock(now=new Date()){
   const moonAltitude=Math.asin(Math.sin(latitude)*Math.sin(lunarDeclination)+Math.cos(latitude)*Math.cos(lunarDeclination)*Math.cos(hourAngle));
   const moonAzimuth=Math.atan2(Math.sin(hourAngle),Math.cos(hourAngle)*Math.sin(latitude)-Math.tan(lunarDeclination)*Math.cos(latitude));
   const weatherVisibility=currentMode.kind==='storm'?.18:currentMode.kind==='rain'?.34:currentMode.kind==='fog'?.42:currentMode.kind==='cloudy'?.66:1;
-  liveSky={solarAltitude,solarAzimuth,lunarAltitude:moonAltitude,lunarAzimuth:moonAzimuth,lunarPhase,lunarIllumination,night,weatherVisibility,phase};
+  liveSky={solarAltitude,solarAzimuth,lunarAltitude:moonAltitude,lunarAzimuth:moonAzimuth,lunarPhase,lunarIllumination,night,weatherVisibility,phase,visibleStars:visibleStarMap(now)};
   const aboveHorizon=Math.max(0,Math.sin(moonAltitude)*3);
   const moonVisibility=Math.max(0,1-daylight*8)*weatherVisibility*aboveHorizon;
   moonOrb.style.opacity=String(moonVisibility*.82);
