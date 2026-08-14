@@ -9,12 +9,14 @@ const categories = [
 ];
 
 const app = document.querySelector('#app');
-app.innerHTML = `<div class="visual-backdrop" aria-hidden="true"><img class="room-photo" alt="" /><div class="cloud-layer" aria-hidden="true"></div><div class="sun-glow" aria-hidden="true"></div></div><div class="moon-orb" aria-hidden="true"></div><canvas id="scene"></canvas><div class="weather-hud" aria-hidden="true"><span class="weather-state"></span><span></span></div><button class="sound-toggle" type="button" aria-label="ambient sound" aria-pressed="false"></button>`;
+app.innerHTML = `<div class="visual-backdrop" aria-hidden="true"><img class="room-photo" alt="" /><canvas id="window-renderer" aria-hidden="true"></canvas><div class="cloud-layer" aria-hidden="true"></div><div class="sun-glow" aria-hidden="true"></div></div><div class="moon-orb" aria-hidden="true"></div><canvas id="scene"></canvas><div class="weather-hud" aria-hidden="true"><span class="weather-state"></span><span></span></div><button class="sound-toggle" type="button" aria-label="ambient sound" aria-pressed="false"></button>`;
 const visualBackdrop = document.querySelector('.visual-backdrop');
 const roomPhoto = document.querySelector('.room-photo');
 const moonOrb = document.querySelector('.moon-orb');
 const cloudLayer = document.querySelector('.cloud-layer');
 const sunGlow = document.querySelector('.sun-glow');
+const windowCanvas = document.querySelector('#window-renderer');
+const windowContext = windowCanvas.getContext('2d', { alpha: true });
 const roomImages = {
   // Neutral master: same room geometry for every later lighting/weather pass.
   day: "url('/images/white-sea-study-master.png?v=0.0.33')",
@@ -117,6 +119,39 @@ const weatherModes=[
 ];
 let currentMode=weatherModes[0], lastNight=false, weatherReady=false;
 let sunriseMs=0, sunsetMs=0;
+let currentWeather={ code:0, cloudCover:0, wind:0, precipitation:0 };
+let liveSky={ solarAltitude:0, solarAzimuth:0, lunarAltitude:0, lunarAzimuth:0, lunarPhase:0, lunarIllumination:0, night:false, weatherVisibility:1, phase:'day' };
+
+function resizeWindowRenderer(){
+  const ratio=innerWidth<700?Math.min(devicePixelRatio||1,1.25):Math.min(devicePixelRatio||1,2);
+  windowCanvas.width=Math.max(1,Math.round(innerWidth*ratio));
+  windowCanvas.height=Math.max(1,Math.round(innerHeight*ratio));
+  windowCanvas.style.width=`${innerWidth}px`; windowCanvas.style.height=`${innerHeight}px`;
+  windowContext.setTransform(ratio,0,0,ratio,0,0);
+}
+addEventListener('resize',resizeWindowRenderer); resizeWindowRenderer();
+
+function renderWindowScene(time){
+  const w=innerWidth, h=innerHeight, c=windowContext;
+  c.clearRect(0,0,w,h);
+  const weather=currentMode, mobile=w<700;
+  // Keep the high-resolution room photograph visible; this canvas is a
+  // transparent, physically-timed atmosphere layer over the open window.
+  const cloudAmount=Math.max(0,Math.min(1,(currentWeather.cloudCover||0)/100));
+  c.save(); c.globalAlpha=.06+.20*cloudAmount; c.filter=`blur(${8+cloudAmount*15}px)`; c.fillStyle=liveSky.night?'#091522':'#ffffff';
+  for(let i=0;i<(mobile?3:5);i++){ const x=((i*.31*w + time*(.004+(currentWeather.wind||0)*.00008))%(w+260))-130; const y=h*(.16+(i%3)*.12); c.beginPath(); c.ellipse(x,y,130+i*18,28+i*8,0,0,Math.PI*2); c.fill(); } c.restore();
+  c.save(); c.globalAlpha=.06+.12*(1-cloudAmount); c.strokeStyle=liveSky.night?'#5fadc3':'#d9f3f5'; c.lineWidth=1;
+  for(let i=0;i<(mobile?18:34);i++){ const y=h*.59+i*i*.18; const drift=Math.sin(time*.0004+i)*12; c.beginPath(); c.moveTo((i*83+drift)%w,y); c.lineTo((i*83+drift+35+(i%4)*25)%w,y); c.stroke(); } c.restore();
+  if(currentWeather.precipitation>0 || currentMode.kind==='rain' || currentMode.kind==='storm'){
+    c.save(); c.globalAlpha=.20+.35*Math.min(1,currentWeather.precipitation||.4); c.strokeStyle='#d8edf2'; c.lineWidth=1;
+    for(let i=0;i<(mobile?40:80);i++){ const x=(i*47+time*.18*(1+(currentWeather.wind||0)/30))%w; const y=(i*31+time*.42)%h; c.beginPath(); c.moveTo(x,y); c.lineTo(x-7,y+22); c.stroke(); } c.restore();
+  }
+  const drawBody=(x,y,r,color,glow)=>{ if(y<0||y>h*.75)return; c.save(); c.globalAlpha=liveSky.night?.92:.82; c.shadowBlur=glow; c.shadowColor=color; c.fillStyle=color; c.beginPath(); c.arc(x,y,r,0,Math.PI*2); c.fill(); c.restore(); };
+  const sunX=w*.5+Math.sin(liveSky.solarAzimuth)*w*.42, sunY=h*.48-Math.max(0,Math.sin(liveSky.solarAltitude))*h*.38;
+  if(!liveSky.night) drawBody(sunX,sunY,Math.max(14,w*.012),'#fff1ba',28);
+  const moonX=w*.5+Math.sin(liveSky.lunarAzimuth)*w*.42, moonY=h*.48-Math.max(0,Math.sin(liveSky.lunarAltitude))*h*.38;
+  if(liveSky.night && liveSky.lunarIllumination>.02) drawBody(moonX,moonY,Math.max(11,w*.009),'#e9e5ca',24*liveSky.weatherVisibility);
+}
 function updateSolarClock(now=new Date()){
   const parts=new Intl.DateTimeFormat('en-US',{timeZone:'America/Los_Angeles',hour:'numeric',minute:'numeric',second:'numeric',hour12:false}).formatToParts(now);
   const get=k=>Number(parts.find(p=>p.type===k)?.value||0); const solarHour=get('hour')+get('minute')/60+get('second')/3600;
@@ -190,6 +225,7 @@ function updateSolarClock(now=new Date()){
   const moonAltitude=Math.asin(Math.sin(latitude)*Math.sin(lunarDeclination)+Math.cos(latitude)*Math.cos(lunarDeclination)*Math.cos(hourAngle));
   const moonAzimuth=Math.atan2(Math.sin(hourAngle),Math.cos(hourAngle)*Math.sin(latitude)-Math.tan(lunarDeclination)*Math.cos(latitude));
   const weatherVisibility=currentMode.kind==='storm'?.18:currentMode.kind==='rain'?.34:currentMode.kind==='fog'?.42:currentMode.kind==='cloudy'?.66:1;
+  liveSky={solarAltitude,solarAzimuth,lunarAltitude:moonAltitude,lunarAzimuth:moonAzimuth,lunarPhase,lunarIllumination,night,weatherVisibility,phase};
   const aboveHorizon=Math.max(0,Math.sin(moonAltitude)*3);
   const moonVisibility=Math.max(0,1-daylight*8)*weatherVisibility*aboveHorizon;
   moonOrb.style.opacity=String(moonVisibility*.82);
@@ -207,8 +243,9 @@ function updateSolarClock(now=new Date()){
 async function syncSanFranciscoWeather(){
   const label=document.querySelector('.weather-state');
   try{
-    const r=await fetch(`https://api.open-meteo.com/v1/forecast?latitude=37.7749&longitude=-122.4194&current=temperature_2m,weather_code,wind_speed_10m,cloud_cover&daily=sunrise,sunset&forecast_days=1&timezone=America%2FLos_Angeles&_=${Date.now()}`,{cache:'no-store'});
+    const r=await fetch(`https://api.open-meteo.com/v1/forecast?latitude=37.7749&longitude=-122.4194&current=temperature_2m,weather_code,wind_speed_10m,cloud_cover,precipitation&daily=sunrise,sunset&forecast_days=1&timezone=America%2FLos_Angeles&_=${Date.now()}`,{cache:'no-store'});
     const data=await r.json(); const current=data.current; const mode=weatherModes.find(x=>x.test(current.weather_code))||weatherModes[1]; currentMode=mode; weatherReady=true;
+    currentWeather={code:Number(current.weather_code)||0,cloudCover:Number(current.cloud_cover)||0,wind:Number(current.wind_speed_10m)||0,precipitation:Number(current.precipitation)||0};
     sunriseMs=Date.parse(data.daily?.sunrise?.[0]||''); sunsetMs=Date.parse(data.daily?.sunset?.[0]||'');
     document.documentElement.style.setProperty('--weather-sky',mode.sky); document.documentElement.style.setProperty('--weather-sea',mode.sea); document.documentElement.style.setProperty('--weather-filter',mode.filter); document.body.classList.toggle('rain',current.weather_code>=51);
     const cover=Number.isFinite(current.cloud_cover)?current.cloud_cover:0;
@@ -229,4 +266,4 @@ setInterval(updateSolarClock,1000);
 addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible'){ syncSanFranciscoWeather(); updateSolarClock(); } });
 document.querySelector('#scene').addEventListener('pointerdown',e=>{downX=e.clientX;});
 document.querySelector('#scene').addEventListener('pointermove',e=>{ if(mode==='room'&&e.buttons) orbit=THREE.MathUtils.clamp((e.clientX-innerWidth/2)/innerWidth,-.12,.12); });
-function animate(t){ requestAnimationFrame(animate); if(mode==='room'){ const forward=new THREE.Vector3(Math.sin(yaw),0,Math.cos(yaw)); const right=new THREE.Vector3(Math.cos(yaw),0,-Math.sin(yaw)); const speed=.075; if(keys.has('KeyW')||keys.has('ArrowUp')) walk.x+=forward.x*speed,walk.z+=forward.z*speed; if(keys.has('KeyS')||keys.has('ArrowDown')) walk.x-=forward.x*speed,walk.z-=forward.z*speed; if(keys.has('KeyA')||keys.has('ArrowLeft')) walk.x-=right.x*speed,walk.z-=right.z*speed; if(keys.has('KeyD')||keys.has('ArrowRight')) walk.x+=right.x*speed,walk.z+=right.z*speed; walk.x=THREE.MathUtils.clamp(walk.x,-5.6,5.6); walk.z=THREE.MathUtils.clamp(walk.z,-.1,9.2); targetCam.set(walk.x,walk.y,walk.z); targetLook.set(walk.x+forward.x*3,2.7,walk.z+forward.z*3); } camera.position.lerp(targetCam, .045); const look=targetLook.clone(); look.x += orbit*3; camera.lookAt(look); room.rotation.y += (orbit-room.rotation.y)*.035; renderer.render(scene,camera); } animate();
+function animate(t){ requestAnimationFrame(animate); renderWindowScene(t); if(mode==='room'){ const forward=new THREE.Vector3(Math.sin(yaw),0,Math.cos(yaw)); const right=new THREE.Vector3(Math.cos(yaw),0,-Math.sin(yaw)); const speed=.075; if(keys.has('KeyW')||keys.has('ArrowUp')) walk.x+=forward.x*speed,walk.z+=forward.z*speed; if(keys.has('KeyS')||keys.has('ArrowDown')) walk.x-=forward.x*speed,walk.z-=forward.z*speed; if(keys.has('KeyA')||keys.has('ArrowLeft')) walk.x-=right.x*speed,walk.z+=right.z*speed; if(keys.has('KeyD')||keys.has('ArrowRight')) walk.x+=right.x*speed,walk.z-=right.z*speed; walk.x=THREE.MathUtils.clamp(walk.x,-5.6,5.6); walk.z=THREE.MathUtils.clamp(walk.z,-.1,9.2); targetCam.set(walk.x,walk.y,walk.z); targetLook.set(walk.x+forward.x*3,2.7,walk.z+forward.z*3); } camera.position.lerp(targetCam, .045); const look=targetLook.clone(); look.x += orbit*3; camera.lookAt(look); room.rotation.y += (orbit-room.rotation.y)*.035; renderer.render(scene,camera); } animate();
