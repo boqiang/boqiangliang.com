@@ -149,6 +149,18 @@ function renderWindowScene(time){
   // Keep the high-resolution room photograph visible; this canvas is a
   // transparent, physically-timed atmosphere layer over the open window.
   const cloudAmount=Math.max(0,Math.min(1,(currentWeather.cloudCover||0)/100));
+  // A sparse, deterministic star field appears only in a clear night sky.
+  // The slow pulse keeps it alive without making the room feel animated.
+  if(liveSky.night){
+    const starCount=mobile?24:52, visibility=liveSky.weatherVisibility*(1-cloudAmount*.72);
+    c.save(); c.fillStyle='#f4f0d5';
+    for(let i=0;i<starCount;i++){
+      const sx=w*(.30+((i*47)%997)/997*.42), sy=h*(.08+((i*83)%431)/431*.34);
+      const twinkle=.45+.35*Math.sin(time*.00035+i*1.73);
+      c.globalAlpha=visibility*.42*twinkle; c.beginPath(); c.arc(sx,sy,(i%5===0?1.15:.65),0,Math.PI*2); c.fill();
+    }
+    c.restore();
+  }
   c.save(); c.globalAlpha=.06+.20*cloudAmount; c.filter=`blur(${8+cloudAmount*15}px)`; c.fillStyle=liveSky.night?'#091522':'#ffffff';
   for(let i=0;i<(mobile?3:5);i++){ const x=((i*.31*w + time*(.004+(currentWeather.wind||0)*.00008))%(w+260))-130; const y=h*(.16+(i%3)*.12); c.beginPath(); c.ellipse(x,y,130+i*18,28+i*8,0,0,Math.PI*2); c.fill(); } c.restore();
   if(currentWeather.precipitation>0 || currentMode.kind==='rain' || currentMode.kind==='storm'){
