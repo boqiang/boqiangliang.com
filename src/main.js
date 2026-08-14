@@ -131,13 +131,20 @@ function updateSolarClock(now=new Date()){
   const lunarIllumination=(1-Math.cos(lunarPhase*Math.PI*2))/2;
   const latitude=37.7749*Math.PI/180;
   const seasonalPhase=((now.getTime()-Date.UTC(now.getUTCFullYear(),0,1))/86400000/365.2422)*Math.PI*2;
-  const phase=solarHour<5.5?'night':solarHour<6.8?'dawn':solarHour<8.2?'sunrise':solarHour<16.8?'day':solarHour<18.5?'golden-hour':solarHour<20?'sunset':solarHour<21.2?'blue-hour':'night';
+  const clockPhase=solarHour<5.5?'night':solarHour<6.8?'dawn':solarHour<8.2?'sunrise':solarHour<16.8?'day':solarHour<18.5?'golden-hour':solarHour<20?'sunset':solarHour<21.2?'blue-hour':'night';
+  // Use the actual SF sunset as the boundary. Blue hour lasts about 35
+  // minutes after sunset, then the room settles into night.
+  const minutesAfterSunset=sunsetMs?(now.getTime()-sunsetMs)/60000:0;
+  const phase=sunsetMs&&minutesAfterSunset>=0
+    ? (minutesAfterSunset<35?'blue-hour':'night')
+    : clockPhase;
   const solarDeclination=23.4*Math.PI/180*Math.sin(seasonalPhase-.4);
   const solarHourAngle=(solarHour-12)/24*Math.PI*2;
   const solarAltitude=Math.asin(Math.sin(latitude)*Math.sin(solarDeclination)+Math.cos(latitude)*Math.cos(solarDeclination)*Math.cos(solarHourAngle));
   const solarAzimuth=Math.atan2(Math.sin(solarHourAngle),Math.cos(solarHourAngle)*Math.sin(latitude)-Math.tan(solarDeclination)*Math.cos(latitude));
   sun.position.set(Math.sin(solarAzimuth)*8,Math.max(-2,Math.sin(solarAltitude)*11+2),-Math.cos(solarAzimuth)*8); weatherLight.position.copy(sun.position).multiplyScalar(.8);
-  const evening=night?.025:Math.max(.3,daylight);
+  const twilightExposure=phase==='sunset'?Math.max(.72,Math.min(1,(sunsetMs-now.getTime())/3600000+.42)):phase==='blue-hour'?.22:phase==='night'?.025:1;
+  const evening=night?.025:Math.max(.3,daylight)*twilightExposure;
   sun.intensity+=(currentMode.intensity*evening-sun.intensity)*.035; weatherLight.intensity+=(currentMode.intensity*.7*evening-weatherLight.intensity)*.035;
   const targetLamp=night?.72:currentMode.lamp; lamp.intensity+=(targetLamp-lamp.intensity)*.035;
   const phaseLooks={
