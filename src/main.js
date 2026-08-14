@@ -149,9 +149,10 @@ function updateSolarClock(now=new Date()){
     sunset:{tint:'rgba(177,74,55,.22)',filter:'saturate(1.16) brightness(.82)'},
     'blue-hour':{tint:'rgba(44,76,104,.2)',filter:'saturate(.8) brightness(.74)'}
   }[phase];
-  // Before the live weather request resolves, keep the first frame to a
-  // stable day/night scene so a guessed clear-sky sunset cannot flash.
-  const initialPhase = weatherReady ? phase : (night ? 'night' : 'day');
+  // Use the real local solar phase immediately. The weather request may refine
+  // the weather mode later, but it must not make a near-sunset visitor see a
+  // daytime placeholder first.
+  const initialPhase = phase;
   const sceneImage = currentMode.kind === 'storm'
     ? (night ? roomImages.night : roomImages.storm)
     : currentMode.kind === 'rain'
