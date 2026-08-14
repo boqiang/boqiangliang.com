@@ -18,7 +18,7 @@ const sunGlow = document.querySelector('.sun-glow');
 const roomImages = {
   // Neutral master: same room geometry for every later lighting/weather pass.
   day: "url('/images/white-sea-study-master.png?v=0.0.33')",
-  dawn: "url('/images/white-sea-study-blue-hour.png?v=0.0.33')",
+  dawn: "url('/images/white-sea-study-blue-hour-v2.png?v=0.0.34')",
   sunset: "url('/images/white-sea-study-golden-hour.png?v=0.0.33')",
   overcast: "url('/images/white-sea-study-overcast.png?v=0.0.33')",
   fog: "url('/images/white-sea-study-fog.png?v=0.0.33')",
