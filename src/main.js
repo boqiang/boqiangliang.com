@@ -122,7 +122,7 @@ function updateSolarClock(now=new Date()){
   const get=k=>Number(parts.find(p=>p.type===k)?.value||0); const solarHour=get('hour')+get('minute')/60+get('second')/3600;
   const sunriseHour=sunriseMs ? new Date(sunriseMs).getHours()+new Date(sunriseMs).getMinutes()/60 : 6;
   const sunsetHour=sunsetMs ? new Date(sunsetMs).getHours()+new Date(sunsetMs).getMinutes()/60 : 18;
-  const daylight=Math.max(0,Math.min(1,(solarHour-sunriseHour)/Math.max(.1,sunsetHour-sunriseHour))), night=(sunriseMs&&sunsetMs) ? (now.getTime()<sunriseMs||now.getTime()>sunsetMs) : daylight<.08;
+  const daylight=Math.max(0,Math.min(1,(solarHour-sunriseHour)/Math.max(.1,sunsetHour-sunriseHour)));
   // Synodic-month approximation anchored to a known new moon. This keeps the
   // moon phase tied to the actual calendar date without adding another API.
   const knownNewMoon=Date.UTC(2000,0,6,18,14);
@@ -138,15 +138,18 @@ function updateSolarClock(now=new Date()){
   const phase=sunsetMs&&minutesAfterSunset>=0
     ? (minutesAfterSunset<35?'blue-hour':'night')
     : clockPhase;
+  const beforeSunrise=sunriseMs ? now.getTime()<sunriseMs : solarHour<5.5;
+  const night=phase==='night'||beforeSunrise;
+  const twilightProgress=phase==='blue-hour'?Math.max(0,Math.min(1,minutesAfterSunset/35)):0;
   const solarDeclination=23.4*Math.PI/180*Math.sin(seasonalPhase-.4);
   const solarHourAngle=(solarHour-12)/24*Math.PI*2;
   const solarAltitude=Math.asin(Math.sin(latitude)*Math.sin(solarDeclination)+Math.cos(latitude)*Math.cos(solarDeclination)*Math.cos(solarHourAngle));
   const solarAzimuth=Math.atan2(Math.sin(solarHourAngle),Math.cos(solarHourAngle)*Math.sin(latitude)-Math.tan(solarDeclination)*Math.cos(latitude));
   sun.position.set(Math.sin(solarAzimuth)*8,Math.max(-2,Math.sin(solarAltitude)*11+2),-Math.cos(solarAzimuth)*8); weatherLight.position.copy(sun.position).multiplyScalar(.8);
-  const twilightExposure=phase==='sunset'?Math.max(.72,Math.min(1,(sunsetMs-now.getTime())/3600000+.42)):phase==='blue-hour'?.22:phase==='night'?.025:1;
-  const evening=night?.025:Math.max(.3,daylight)*twilightExposure;
+  const twilightExposure=phase==='sunset'?Math.max(.72,Math.min(1,(sunsetMs-now.getTime())/3600000+.42)):phase==='blue-hour'?.22-(.18*twilightProgress):phase==='night'?.025:1;
+  const evening=phase==='night'?.025:phase==='blue-hour'?.3-(.275*twilightProgress):Math.max(.3,daylight)*twilightExposure;
   sun.intensity+=(currentMode.intensity*evening-sun.intensity)*.035; weatherLight.intensity+=(currentMode.intensity*.7*evening-weatherLight.intensity)*.035;
-  const targetLamp=night?.72:currentMode.lamp; lamp.intensity+=(targetLamp-lamp.intensity)*.035;
+  const targetLamp=phase==='night'?.72:phase==='blue-hour'?currentMode.lamp+((.72-currentMode.lamp)*twilightProgress):currentMode.lamp; lamp.intensity+=(targetLamp-lamp.intensity)*.035;
   const phaseLooks={
     night:{tint:'rgba(12,30,45,.18)',filter:'saturate(.72) brightness(.68)'},
     dawn:{tint:'rgba(238,152,126,.18)',filter:'saturate(1.06) brightness(.94)'},
@@ -160,19 +163,21 @@ function updateSolarClock(now=new Date()){
   // the weather mode later, but it must not make a near-sunset visitor see a
   // daytime placeholder first.
   const initialPhase = phase;
-  const sceneImage = currentMode.kind === 'storm'
-    ? (night ? roomImages.night : roomImages.storm)
-    : currentMode.kind === 'rain'
-      ? (night ? roomImages.night : roomImages.rain)
-      : currentMode.kind === 'fog'
-        ? (night ? roomImages.night : roomImages.fog)
-        : currentMode.kind === 'cloudy'
-          ? roomImages.overcast
-    : initialPhase === 'dawn' || initialPhase === 'sunrise'
-      ? roomImages.dawn
-      : initialPhase === 'golden-hour' || initialPhase === 'sunset'
-        ? roomImages.sunset
-        : night || initialPhase === 'blue-hour' ? roomImages.night : roomImages.day;
+  const sceneImage = night
+    ? roomImages.night
+    : currentMode.kind === 'storm'
+      ? roomImages.storm
+      : currentMode.kind === 'rain'
+        ? roomImages.rain
+        : currentMode.kind === 'fog'
+          ? roomImages.fog
+          : initialPhase === 'dawn' || initialPhase === 'sunrise' || initialPhase === 'blue-hour'
+            ? roomImages.dawn
+            : currentMode.kind === 'cloudy'
+              ? roomImages.overcast
+              : initialPhase === 'golden-hour' || initialPhase === 'sunset'
+                ? roomImages.sunset
+                : roomImages.day;
   setBackdropImage(`linear-gradient(90deg,${phaseLooks.tint},rgba(247,247,243,.02) 48%,${phaseLooks.tint}),${sceneImage}`);
   visualBackdrop.style.filter=currentMode.filter+' '+phaseLooks.filter;
   lastNight=night;
