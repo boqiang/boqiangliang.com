@@ -95,7 +95,7 @@ let audioContext, ambience, rainGain, oceanGain;
 function toggleAmbience(){
   if(!audioContext){
     audioContext=new (window.AudioContext||window.webkitAudioContext)();
-    const master=audioContext.createGain(); master.gain.value=.045; master.connect(audioContext.destination);
+    const master=audioContext.createGain(); master.gain.value=.08; master.connect(audioContext.destination);
     const low=audioContext.createOscillator(); low.type='sine'; low.frequency.value=92;
     const high=audioContext.createOscillator(); high.type='sine'; high.frequency.value=138;
     // Keep the room tone barely audible; the ocean should be the foreground sound.
@@ -107,18 +107,18 @@ function toggleAmbience(){
     // LFO makes each swell arrive and recede instead of sounding like a flat hiss.
     const ocean=audioContext.createBufferSource(); ocean.buffer=buffer; ocean.loop=true;
     const oceanFilter=audioContext.createBiquadFilter(); oceanFilter.type='lowpass'; oceanFilter.frequency.value=900; oceanFilter.Q.value=.3;
-    oceanGain=audioContext.createGain(); oceanGain.gain.value=.11;
+    oceanGain=audioContext.createGain(); oceanGain.gain.value=.28;
     ocean.connect(oceanFilter); oceanFilter.connect(oceanGain); oceanGain.connect(master);
     const swell=audioContext.createOscillator(); swell.type='sine'; swell.frequency.value=.075;
-    const swellDepth=audioContext.createGain(); swellDepth.gain.value=.085; swell.connect(swellDepth); swellDepth.connect(oceanGain.gain);
+    const swellDepth=audioContext.createGain(); swellDepth.gain.value=.18; swell.connect(swellDepth); swellDepth.connect(oceanGain.gain);
     const foam=audioContext.createBufferSource(); foam.buffer=buffer; foam.loop=true;
     const foamFilter=audioContext.createBiquadFilter(); foamFilter.type='bandpass'; foamFilter.frequency.value=1450; foamFilter.Q.value=.45;
-    const foamGain=audioContext.createGain(); foamGain.gain.value=.06; foam.connect(foamFilter); foamFilter.connect(foamGain); foamGain.connect(master);
+    const foamGain=audioContext.createGain(); foamGain.gain.value=.12; foam.connect(foamFilter); foamFilter.connect(foamGain); foamGain.connect(master);
     const rain=audioContext.createBufferSource(); rain.buffer=buffer; rain.loop=true; const rainFilter=audioContext.createBiquadFilter(); rainFilter.type='bandpass'; rainFilter.frequency.value=3200; rainFilter.Q.value=.5; rainGain=audioContext.createGain(); rainGain.gain.value=0; rain.connect(rainFilter); rainFilter.connect(rainGain); rainGain.connect(master);
     low.start(); high.start(); hush.start(); ocean.start(); swell.start(); foam.start(); rain.start(); ambience={master};
   }
   if(audioContext.state==='suspended') audioContext.resume();
-    const button=document.querySelector('.sound-toggle'); const on=button.getAttribute('aria-pressed')!=='true'; ambience.master.gain.setTargetAtTime(on?.045:0,audioContext.currentTime,.25); button.setAttribute('aria-pressed',String(on)); button.textContent=on?'♫ 静谧环境音已开启':'♫ 开启静谧环境音';
+    const button=document.querySelector('.sound-toggle'); const on=button.getAttribute('aria-pressed')!=='true'; ambience.master.gain.setTargetAtTime(on?.08:0,audioContext.currentTime,.25); button.setAttribute('aria-pressed',String(on)); button.textContent=on?'♫ 静谧环境音已开启':'♫ 开启静谧环境音';
 }
 document.querySelector('.sound-toggle').addEventListener('click',toggleAmbience);
 // AudioContext autoplay is blocked until the visitor interacts with the page.
