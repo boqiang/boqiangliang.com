@@ -17,15 +17,15 @@ const cloudLayer = document.querySelector('.cloud-layer');
 const sunGlow = document.querySelector('.sun-glow');
 const roomImages = {
   // Neutral master: same room geometry for every later lighting/weather pass.
-  day: "url('/images/white-sea-study-master.png?v=0.0.32')",
-  dawn: "url('/images/white-sea-study-blue-hour.png?v=0.0.32')",
-  sunset: "url('/images/white-sea-study-golden-hour.png?v=0.0.32')",
-  overcast: "url('/images/white-sea-study-overcast.png?v=0.0.32')",
-  fog: "url('/images/white-sea-study-fog.png?v=0.0.32')",
-  rain: "url('/images/white-sea-study-rain.png?v=0.0.32')",
-  storm: "url('/images/white-sea-study-storm.png?v=0.0.32')",
-  night: "url('/images/white-sea-study-night.png?v=0.0.32')",
-  moonFog: "url('/images/white-sea-study-moon-fog-no-moon.png?v=0.0.32')"
+  day: "url('/images/white-sea-study-master.png?v=0.0.33')",
+  dawn: "url('/images/white-sea-study-blue-hour.png?v=0.0.33')",
+  sunset: "url('/images/white-sea-study-golden-hour.png?v=0.0.33')",
+  overcast: "url('/images/white-sea-study-overcast.png?v=0.0.33')",
+  fog: "url('/images/white-sea-study-fog.png?v=0.0.33')",
+  rain: "url('/images/white-sea-study-rain.png?v=0.0.33')",
+  storm: "url('/images/white-sea-study-storm.png?v=0.0.33')",
+  night: "url('/images/white-sea-study-night.png?v=0.0.33')",
+  moonFog: "url('/images/white-sea-study-moon-fog-no-moon.png?v=0.0.33')"
 };
 const dayRoomImage = roomImages.day;
 const nightRoomImage = roomImages.night;
