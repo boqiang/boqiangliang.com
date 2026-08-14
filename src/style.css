@@ -23,3 +23,35 @@ header,.scene-copy,.caption,footer,.book-panel{display:none!important}
 /* The room is intentionally curtain-free: the ocean window should read as one continuous wall. */
 .visual-backdrop::before,.visual-backdrop::after{display:none}
 .moon-orb{position:fixed;z-index:1;top:15vh;right:18vw;width:78px;height:78px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#fffdf0,#e8e1c8 62%,#bbb59f);box-shadow:0 0 34px rgba(255,248,210,.55);opacity:0;transition:opacity 2s,transform 4s ease-out;pointer-events:none}
+
+/* Portrait screens keep the room full-bleed, but shift the crop toward the
+   open window and reading corner instead of cutting through the furniture. */
+@media (max-width: 700px) {
+  :root { background: #d8d8d2; }
+  body { min-height: 100dvh; }
+  .visual-backdrop,
+  .room-photo {
+    min-height: 100dvh;
+    height: 100dvh;
+  }
+  .room-photo { object-position: 58% 50%; }
+  .visual-backdrop {
+    background-position: 58% 50%;
+  }
+  .visual-backdrop::after {
+    display: block;
+    inset: 0;
+    width: auto;
+    opacity: .16;
+    background: linear-gradient(180deg, rgba(18, 28, 31, .08), transparent 30%, rgba(18, 28, 31, .18));
+    clip-path: none;
+    animation: none;
+  }
+  .grain { opacity: .025; }
+  .moon-orb { width: 54px; height: 54px; top: 13vh; right: 14vw; }
+}
+
+@media (max-width: 380px) {
+  .room-photo { object-position: 60% 50%; }
+  .visual-backdrop { background-position: 60% 50%; }
+}
