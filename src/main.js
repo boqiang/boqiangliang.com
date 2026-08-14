@@ -1,4 +1,6 @@
 import * as THREE from 'three';
+import worldAtlas from 'world-atlas/countries-110m.json';
+import { feature } from 'topojson-client';
 import './style.css';
 
 const categories = [
@@ -18,7 +20,9 @@ const sunGlow = document.querySelector('.sun-glow');
 const windowCanvas = document.querySelector('#window-renderer');
 const windowContext = windowCanvas.getContext('2d', { alpha: true });
 const visitorModal=document.querySelector('#visitor-modal'), worldMap=document.querySelector('#world-map');
-const worldShapes='<path d="M7 34 13 20 29 15 40 20 51 17 61 24 76 22 88 31 82 43 67 45 59 54 45 48 34 54 24 47 12 50Z"/><path d="M25 57 38 59 44 70 39 89 30 80 31 68Z"/><path d="m74 28 12-7 22 4 16 12-5 12-16 3-10-8-15 2-8-8Z"/><path d="m112 51 18-4 10 11-8 9 4 19-12 12-10-13 4-17-10-7Z"/><path d="m151 25 13-6 18 6 14-2 14 9-6 12-16 4-9 12-17-7-9-13Z"/><path d="m184 55 15-4 14 8-3 11-14 4-11-8Z"/>';
+function projectPoint([longitude, latitude]){return [(longitude+180)/360*220,(90-latitude)/180*112];}
+function geoPath(geometry){const rings=geometry.type==='Polygon'?geometry.coordinates:geometry.coordinates.flat();return rings.map(ring=>ring.map((point,index)=>{const [x,y]=projectPoint(point);return `${index?'L':'M'}${x.toFixed(2)} ${y.toFixed(2)}`;}).join(' ')+'Z').join(' ');}
+const worldShapes=feature(worldAtlas,worldAtlas.objects.land).features.map(({geometry})=>`<path d="${geoPath(geometry)}"/>`).join('');
 const countryCenters={US:[38,37],CA:[35,23],MX:[42,48],BR:[73,67],AR:[69,83],GB:[117,29],FR:[123,37],DE:[128,34],ES:[119,43],IT:[132,43],NL:[125,29],IN:[164,53],CN:[174,39],JP:[194,44],KR:[190,43],AU:[190,84],SG:[173,67],RU:[162,22],UA:[148,31],ZA:[143,80],UN:[108,55]};
 function drawVisitorMap(countries={}){const entries=Object.entries(countries), max=Math.max(1,...entries.map(([,count])=>count));const grid=Array.from({length:7},(_,i)=>`<path class="map-grid" d="M0 ${i*16+8}H220"/>`).join('')+Array.from({length:12},(_,i)=>`<path class="map-grid" d="M${i*20-10} 0V112"/>`).join('');const markers=entries.map(([code,count])=>{const [x,y]=countryCenters[code]||countryCenters.UN;const ratio=count/max;const size=3.5+ratio*13;const hue=190-(ratio*155);return `<g class="visitor-marker" style="--dot-hue:${hue};--dot-alpha:${.45+ratio*.48}"><circle class="visitor-pulse" cx="${x}" cy="${y}" r="${size*1.7}"/><circle class="visitor-dot" cx="${x}" cy="${y}" r="${size}" aria-label="${code}"/></g>`;}).join('');worldMap.innerHTML=`<svg viewBox="0 0 220 112" role="img" aria-label="Visitor distribution map" preserveAspectRatio="xMidYMid meet"><g class="map-grid-group">${grid}</g><g class="map-land">${worldShapes}</g><g class="map-markers">${markers}</g></svg>`;}
 async function refreshVisitorStats(){try{const data=await (await fetch('/api/visitors',{method:'POST'})).json();drawVisitorMap(data.countries);}catch{drawVisitorMap();}}
