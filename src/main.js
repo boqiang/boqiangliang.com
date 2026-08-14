@@ -118,8 +118,20 @@ function updateSolarClock(now=new Date()){
   const parts=new Intl.DateTimeFormat('en-US',{timeZone:'America/Los_Angeles',hour:'numeric',minute:'numeric',second:'numeric',hour12:false}).formatToParts(now);
   const get=k=>Number(parts.find(p=>p.type===k)?.value||0); const solarHour=get('hour')+get('minute')/60+get('second')/3600;
   const daylight=Math.max(0,Math.sin((solarHour-6)/12*Math.PI)), night=daylight<.08;
+  // Synodic-month approximation anchored to a known new moon. This keeps the
+  // moon phase tied to the actual calendar date without adding another API.
+  const knownNewMoon=Date.UTC(2000,0,6,18,14);
+  const synodicMonth=29.530588853;
+  const lunarPhase=((now.getTime()-knownNewMoon)/86400000/synodicMonth%1+1)%1;
+  const lunarIllumination=(1-Math.cos(lunarPhase*Math.PI*2))/2;
+  const latitude=37.7749*Math.PI/180;
+  const seasonalPhase=((now.getTime()-Date.UTC(now.getUTCFullYear(),0,1))/86400000/365.2422)*Math.PI*2;
   const phase=solarHour<5.5?'night':solarHour<6.8?'dawn':solarHour<8.2?'sunrise':solarHour<16.8?'day':solarHour<18.5?'golden-hour':solarHour<20?'sunset':solarHour<21.2?'blue-hour':'night';
-  const azimuth=(solarHour-12)/6*Math.PI; sun.position.set(Math.sin(azimuth)*8,2+daylight*9,-Math.cos(azimuth)*8); weatherLight.position.copy(sun.position).multiplyScalar(.8);
+  const solarDeclination=23.4*Math.PI/180*Math.sin(seasonalPhase-.4);
+  const solarHourAngle=(solarHour-12)/24*Math.PI*2;
+  const solarAltitude=Math.asin(Math.sin(latitude)*Math.sin(solarDeclination)+Math.cos(latitude)*Math.cos(solarDeclination)*Math.cos(solarHourAngle));
+  const solarAzimuth=Math.atan2(Math.sin(solarHourAngle),Math.cos(solarHourAngle)*Math.sin(latitude)-Math.tan(solarDeclination)*Math.cos(latitude));
+  sun.position.set(Math.sin(solarAzimuth)*8,Math.max(-2,Math.sin(solarAltitude)*11+2),-Math.cos(solarAzimuth)*8); weatherLight.position.copy(sun.position).multiplyScalar(.8);
   const evening=night?.025:Math.max(.3,daylight);
   sun.intensity+=(currentMode.intensity*evening-sun.intensity)*.035; weatherLight.intensity+=(currentMode.intensity*.7*evening-weatherLight.intensity)*.035;
   const targetLamp=night?.72:currentMode.lamp; lamp.intensity+=(targetLamp-lamp.intensity)*.035;
@@ -148,8 +160,25 @@ function updateSolarClock(now=new Date()){
   setBackdropImage(`linear-gradient(90deg,${phaseLooks.tint},rgba(247,247,243,.02) 48%,${phaseLooks.tint}),${sceneImage}`);
   visualBackdrop.style.filter=currentMode.filter+' '+phaseLooks.filter;
   lastNight=night;
-  moonOrb.style.opacity=String(Math.max(0,1-daylight*8)*.82);
-  moonOrb.style.transform=`translate(${Math.cos((solarHour-12)/24*Math.PI*2)*22}vw,${Math.sin((solarHour-12)/24*Math.PI*2)*8}vh)`;
+  // Approximate the Moon's local sky position for San Francisco. The phase
+  // determines its hour angle (new moon near noon, full moon near midnight),
+  // while date-dependent declination keeps its altitude from being constant.
+  const lunarDeclination=23.4*Math.PI/180*Math.sin(lunarPhase*Math.PI*2+seasonalPhase);
+  const moonTransit=(12+lunarPhase*24)%24;
+  const hourAngle=(solarHour-moonTransit)/24*Math.PI*2;
+  const moonAltitude=Math.asin(Math.sin(latitude)*Math.sin(lunarDeclination)+Math.cos(latitude)*Math.cos(lunarDeclination)*Math.cos(hourAngle));
+  const moonAzimuth=Math.atan2(Math.sin(hourAngle),Math.cos(hourAngle)*Math.sin(latitude)-Math.tan(lunarDeclination)*Math.cos(latitude));
+  const weatherVisibility=currentMode.kind==='storm'?.18:currentMode.kind==='rain'?.34:currentMode.kind==='fog'?.42:currentMode.kind==='cloudy'?.66:1;
+  const aboveHorizon=Math.max(0,Math.sin(moonAltitude)*3);
+  const moonVisibility=Math.max(0,1-daylight*8)*weatherVisibility*aboveHorizon;
+  moonOrb.style.opacity=String(moonVisibility*.82);
+  moonOrb.style.setProperty('--moon-illumination',String(lunarIllumination));
+  moonOrb.style.setProperty('--moon-phase',String(lunarPhase));
+  moonOrb.dataset.phase=lunarPhase<.03||lunarPhase>.97?'new':lunarPhase<.22?'waxing-crescent':lunarPhase<.28?'first-quarter':lunarPhase<.47?'waxing-gibbous':lunarPhase<.53?'full':lunarPhase<.72?'waning-gibbous':lunarPhase<.78?'last-quarter':lunarPhase<.97?'waning-crescent':'new';
+  moonOrb.dataset.weather=currentMode.kind;
+  const moonX=Math.max(-22,Math.min(22,Math.sin(moonAzimuth)*22));
+  const moonY=Math.max(-18,Math.min(18,(moonAltitude*180/Math.PI-35)*-.32));
+  moonOrb.style.transform=`translate(${moonX}vw,${moonY}vh)`;
 }
 async function syncSanFranciscoWeather(){
   const label=document.querySelector('.weather-state');

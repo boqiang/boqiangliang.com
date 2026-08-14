@@ -22,7 +22,21 @@ header,.scene-copy,.caption,footer,.book-panel{display:none!important}
 
 /* The room is intentionally curtain-free: the ocean window should read as one continuous wall. */
 .visual-backdrop::before,.visual-backdrop::after{display:none}
-.moon-orb{position:fixed;z-index:1;top:15vh;right:18vw;width:78px;height:78px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#fffdf0,#e8e1c8 62%,#bbb59f);box-shadow:0 0 34px rgba(255,248,210,.55);opacity:0;transition:opacity 2s,transform 4s ease-out;pointer-events:none}
+.moon-orb{position:fixed;z-index:1;top:15vh;right:18vw;width:78px;height:78px;border-radius:50%;overflow:hidden;background:radial-gradient(circle at 35% 35%,#fffdf0,#e8e1c8 62%,#bbb59f);box-shadow:0 0 34px rgba(255,248,210,.55);opacity:0;transition:opacity 2s,transform 4s ease-out,filter 1.5s;pointer-events:none}
+.moon-orb::after{content:"";position:absolute;inset:-3%;border-radius:50%;background:rgba(12,28,42,.94);transition:transform .8s ease,opacity .8s ease}
+.moon-orb[data-phase="new"]{box-shadow:none!important}
+.moon-orb[data-phase="new"]::after{opacity:1;transform:translateX(0)}
+.moon-orb[data-phase="waxing-crescent"]::after{transform:translateX(-45%)}
+.moon-orb[data-phase="first-quarter"]::after{transform:translateX(-50%)}
+.moon-orb[data-phase="waxing-gibbous"]::after{transform:translateX(-70%)}
+.moon-orb[data-phase="full"]::after{opacity:0;transform:translateX(-100%)}
+.moon-orb[data-phase="waning-gibbous"]::after{transform:translateX(70%)}
+.moon-orb[data-phase="last-quarter"]::after{transform:translateX(50%)}
+.moon-orb[data-phase="waning-crescent"]::after{transform:translateX(45%)}
+.moon-orb[data-weather="cloudy"]{filter:blur(1px)}
+.moon-orb[data-weather="fog"]{filter:blur(2.5px)}
+.moon-orb[data-weather="rain"]{filter:blur(3px)}
+.moon-orb[data-weather="storm"]{filter:blur(4px)}
 
 /* Portrait screens keep the room full-bleed, but shift the crop toward the
    open window and reading corner instead of cutting through the furniture. */
