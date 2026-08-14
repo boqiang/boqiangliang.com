@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: boqiangliang-com-visitor-data-pv
+spec:
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: ""
+  volumeMode: Filesystem
+  claimRef:
+    namespace: boqiangliang-com
+    name: boqiangliang-com-visitor-data
+  mountOptions:
+    - nfsvers=4.1
+    - rw
+    - hard
+    - noatime
+    - nodiratime
+    - noexec
+    - nosuid
+  nfs:
+    server: 192.168.0.21
+    path: /mnt/WD20T-1/data/k8s/storage/boqiangliang-com-visitor-data

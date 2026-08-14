@@ -4,6 +4,8 @@ metadata:
   name: boqiangliang-com-visitor-data
   namespace: boqiangliang-com
 spec:
+  volumeName: boqiangliang-com-visitor-data-pv
+  storageClassName: ""
   accessModes:
     - ReadWriteOnce
   resources:
