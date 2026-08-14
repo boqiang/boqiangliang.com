@@ -14,7 +14,8 @@ const visualBackdrop = document.querySelector('.visual-backdrop');
 const roomPhoto = document.querySelector('.room-photo');
 const moonOrb = document.querySelector('.moon-orb');
 const roomImages = {
-  day: "url('/images/white-sea-study-open-window.png?v=0.0.23')",
+  // Neutral master: same room geometry for every later lighting/weather pass.
+  day: "url('/images/white-sea-study-master.png?v=0.0.25')",
   dawn: "url('/images/white-sea-study-dawn.png?v=0.0.23')",
   sunset: "url('/images/white-sea-study-sunset.png?v=0.0.23')",
   overcast: "url('/images/white-sea-study-overcast.png?v=0.0.23')",
