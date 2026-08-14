@@ -67,15 +67,6 @@ body[data-cloud="storm"] .cloud-layer{opacity:.42;filter:blur(15px);mix-blend-mo
   .visual-backdrop {
     background-position: 58% 50%;
   }
-  .visual-backdrop::after {
-    display: block;
-    inset: 0;
-    width: auto;
-    opacity: .16;
-    background: linear-gradient(180deg, rgba(18, 28, 31, .08), transparent 30%, rgba(18, 28, 31, .18));
-    clip-path: none;
-    animation: none;
-  }
   .grain { opacity: .025; }
   .moon-orb { width: 54px; height: 54px; top: 13vh; right: 14vw; }
 }
@@ -84,3 +75,7 @@ body[data-cloud="storm"] .cloud-layer{opacity:.42;filter:blur(15px);mix-blend-mo
   .room-photo { object-position: 60% 50%; }
   .visual-backdrop { background-position: 60% 50%; }
 }
+
+/* The chosen master is a clean architectural photograph; never overlay a curtain. */
+.visual-backdrop::before,
+.visual-backdrop::after { display: none !important; }
