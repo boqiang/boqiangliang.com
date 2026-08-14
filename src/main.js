@@ -26,10 +26,14 @@ const roomImages = {
 };
 const dayRoomImage = roomImages.day;
 const nightRoomImage = roomImages.night;
+let activeSceneSource = '';
 function setBackdropImage(cssImage){
   visualBackdrop.style.backgroundImage = cssImage;
   const source = cssImage.match(/url\(['\"]?([^'\")]+)['\"]?\)/)?.[1];
-  if (source) roomPhoto.src = source;
+  if (source && source !== activeSceneSource) {
+    activeSceneSource = source;
+    roomPhoto.src = source;
+  }
 }
 function setRoomTime(night){
   setBackdropImage(`linear-gradient(90deg,rgba(247,247,243,.18),rgba(247,247,243,.02) 48%,rgba(247,247,243,.16)),${night ? nightRoomImage : dayRoomImage}`);
@@ -150,7 +154,7 @@ function updateSolarClock(now=new Date()){
 async function syncSanFranciscoWeather(){
   const label=document.querySelector('.weather-state');
   try{
-    const r=await fetch('https://api.open-meteo.com/v1/forecast?latitude=37.7749&longitude=-122.4194&current=temperature_2m,weather_code,wind_speed_10m&timezone=America%2FLos_Angeles');
+    const r=await fetch(`https://api.open-meteo.com/v1/forecast?latitude=37.7749&longitude=-122.4194&current=temperature_2m,weather_code,wind_speed_10m&timezone=America%2FLos_Angeles&_=${Date.now()}`,{cache:'no-store'});
     const data=await r.json(); const current=data.current; const mode=weatherModes.find(x=>x.test(current.weather_code))||weatherModes[1]; currentMode=mode;
     document.documentElement.style.setProperty('--weather-sky',mode.sky); document.documentElement.style.setProperty('--weather-sea',mode.sea); document.documentElement.style.setProperty('--weather-filter',mode.filter); document.body.classList.toggle('rain',current.weather_code>=51);
     sun.color.set(mode.light); weatherLight.color.set(mode.light); updateSolarClock();
@@ -158,7 +162,10 @@ async function syncSanFranciscoWeather(){
     label.textContent=`旧金山 · ${mode.name} · ${Math.round(current.temperature_2m)}°C`;
   }catch{ label.textContent='旧金山 · 天气暂不可用，保持宁静光线'; }
 }
-syncSanFranciscoWeather(); setInterval(syncSanFranciscoWeather,10*60*1000); setInterval(updateSolarClock,1000);
+syncSanFranciscoWeather();
+setInterval(syncSanFranciscoWeather,10*60*1000);
+setInterval(updateSolarClock,1000);
+addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible'){ syncSanFranciscoWeather(); updateSolarClock(); } });
 document.querySelector('#scene').addEventListener('pointerdown',e=>{downX=e.clientX;});
 document.querySelector('#scene').addEventListener('pointermove',e=>{ if(mode==='room'&&e.buttons) orbit=THREE.MathUtils.clamp((e.clientX-innerWidth/2)/innerWidth,-.12,.12); });
 function animate(t){ requestAnimationFrame(animate); if(mode==='room'){ const forward=new THREE.Vector3(Math.sin(yaw),0,Math.cos(yaw)); const right=new THREE.Vector3(Math.cos(yaw),0,-Math.sin(yaw)); const speed=.075; if(keys.has('KeyW')||keys.has('ArrowUp')) walk.x+=forward.x*speed,walk.z+=forward.z*speed; if(keys.has('KeyS')||keys.has('ArrowDown')) walk.x-=forward.x*speed,walk.z-=forward.z*speed; if(keys.has('KeyA')||keys.has('ArrowLeft')) walk.x-=right.x*speed,walk.z-=right.z*speed; if(keys.has('KeyD')||keys.has('ArrowRight')) walk.x+=right.x*speed,walk.z+=right.z*speed; walk.x=THREE.MathUtils.clamp(walk.x,-5.6,5.6); walk.z=THREE.MathUtils.clamp(walk.z,-.1,9.2); targetCam.set(walk.x,walk.y,walk.z); targetLook.set(walk.x+forward.x*3,2.7,walk.z+forward.z*3); } camera.position.lerp(targetCam, .045); const look=targetLook.clone(); look.x += orbit*3; camera.lookAt(look); room.rotation.y += (orbit-room.rotation.y)*.035; renderer.render(scene,camera); } animate();
