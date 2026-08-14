@@ -112,7 +112,7 @@ const weatherModes=[
   {test:c=>c<=67||c<=77, kind:'rain', name:'细雨', sky:'#c7d3d8', sea:'#78949e', light:'#d5e0e8', intensity:.48, lamp:2.1, filter:'saturate(.55) brightness(.86)'},
   {test:c=>c<=99, kind:'storm', name:'风雨', sky:'#aebdc5', sea:'#637f89', light:'#c8d7e4', intensity:.3, lamp:2.45, filter:'saturate(.48) brightness(.76)'}
 ];
-let currentMode=weatherModes[0], lastNight=false;
+let currentMode=weatherModes[0], lastNight=false, weatherReady=false;
 function updateSolarClock(now=new Date()){
   const parts=new Intl.DateTimeFormat('en-US',{timeZone:'America/Los_Angeles',hour:'numeric',minute:'numeric',second:'numeric',hour12:false}).formatToParts(now);
   const get=k=>Number(parts.find(p=>p.type===k)?.value||0); const solarHour=get('hour')+get('minute')/60+get('second')/3600;
@@ -143,6 +143,9 @@ function updateSolarClock(now=new Date()){
     sunset:{tint:'rgba(177,74,55,.22)',filter:'saturate(1.16) brightness(.82)'},
     'blue-hour':{tint:'rgba(44,76,104,.2)',filter:'saturate(.8) brightness(.74)'}
   }[phase];
+  // Before the live weather request resolves, keep the first frame to a
+  // stable day/night scene so a guessed clear-sky sunset cannot flash.
+  const initialPhase = weatherReady ? phase : (night ? 'night' : 'day');
   const sceneImage = currentMode.kind === 'storm'
     ? (night ? roomImages.moonFog : roomImages.storm)
     : currentMode.kind === 'rain'
@@ -151,11 +154,11 @@ function updateSolarClock(now=new Date()){
         ? (night ? roomImages.moonFog : roomImages.fog)
         : currentMode.kind === 'cloudy'
           ? roomImages.overcast
-    : phase === 'dawn' || phase === 'sunrise'
+    : initialPhase === 'dawn' || initialPhase === 'sunrise'
       ? roomImages.dawn
-      : phase === 'golden-hour' || phase === 'sunset'
+      : initialPhase === 'golden-hour' || initialPhase === 'sunset'
         ? roomImages.sunset
-        : night || phase === 'blue-hour' ? roomImages.night : roomImages.day;
+        : night || initialPhase === 'blue-hour' ? roomImages.night : roomImages.day;
   setBackdropImage(`linear-gradient(90deg,${phaseLooks.tint},rgba(247,247,243,.02) 48%,${phaseLooks.tint}),${sceneImage}`);
   visualBackdrop.style.filter=currentMode.filter+' '+phaseLooks.filter;
   lastNight=night;
@@ -183,7 +186,7 @@ async function syncSanFranciscoWeather(){
   const label=document.querySelector('.weather-state');
   try{
     const r=await fetch(`https://api.open-meteo.com/v1/forecast?latitude=37.7749&longitude=-122.4194&current=temperature_2m,weather_code,wind_speed_10m&timezone=America%2FLos_Angeles&_=${Date.now()}`,{cache:'no-store'});
-    const data=await r.json(); const current=data.current; const mode=weatherModes.find(x=>x.test(current.weather_code))||weatherModes[1]; currentMode=mode;
+    const data=await r.json(); const current=data.current; const mode=weatherModes.find(x=>x.test(current.weather_code))||weatherModes[1]; currentMode=mode; weatherReady=true;
     document.documentElement.style.setProperty('--weather-sky',mode.sky); document.documentElement.style.setProperty('--weather-sea',mode.sea); document.documentElement.style.setProperty('--weather-filter',mode.filter); document.body.classList.toggle('rain',current.weather_code>=51);
     sun.color.set(mode.light); weatherLight.color.set(mode.light); updateSolarClock();
     if(rainGain&&audioContext.state==='running') rainGain.gain.setTargetAtTime(current.weather_code>=51?.22:0,audioContext.currentTime,.8);
