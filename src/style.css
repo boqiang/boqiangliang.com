@@ -42,6 +42,16 @@ header,.scene-copy,.caption,footer,.book-panel{display:none!important}
 .moon-orb[data-weather="fog"]{filter:blur(2.5px)}
 .moon-orb[data-weather="rain"]{filter:blur(3px)}
 .moon-orb[data-weather="storm"]{filter:blur(4px)}
+.cloud-layer,.sun-glow{position:absolute;pointer-events:none;z-index:1;left:25%;right:14%;top:5%;bottom:25%;overflow:hidden;transition:opacity 3s ease,filter 3s ease}
+.cloud-layer{opacity:0;filter:blur(18px);mix-blend-mode:soft-light;background:radial-gradient(ellipse at 18% 26%,rgba(255,255,255,.7),transparent 27%),radial-gradient(ellipse at 48% 18%,rgba(255,255,255,.58),transparent 32%),radial-gradient(ellipse at 78% 31%,rgba(255,255,255,.62),transparent 30%),linear-gradient(180deg,rgba(90,112,124,.25),transparent 68%);animation:cloud-drift var(--cloud-speed,60s) ease-in-out infinite alternate}
+body[data-cloud="scattered"] .cloud-layer{opacity:.16;filter:blur(16px)}
+body[data-cloud="overcast"] .cloud-layer{opacity:.3;filter:blur(20px)}
+body[data-cloud="fog"] .cloud-layer{opacity:.24;filter:blur(28px)}
+body[data-cloud="storm"] .cloud-layer{opacity:.42;filter:blur(15px);mix-blend-mode:multiply}
+.sun-glow{z-index:2;left:0;right:auto;top:0;bottom:auto;width:150px;height:150px;border-radius:50%;opacity:0;background:radial-gradient(circle,rgba(255,244,190,.72) 0,rgba(255,229,160,.24) 34%,transparent 72%);filter:blur(7px);transition:opacity 3s ease,transform 4s ease-out}
+@keyframes cloud-drift{from{background-position:0 0,0 0,0 0,0 0}to{background-position:8% 3%,-6% 2%,5% -2%,0 0}}
+@media(max-width:700px){.cloud-layer{left:4%;right:4%;top:4%;bottom:28%}.sun-glow{width:100px;height:100px}}
+@media(prefers-reduced-motion:reduce){.cloud-layer{animation:none}}
 
 /* Portrait screens keep the room full-bleed, but shift the crop toward the
    open window and reading corner instead of cutting through the furniture. */

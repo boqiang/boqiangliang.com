@@ -9,19 +9,21 @@ const categories = [
 ];
 
 const app = document.querySelector('#app');
-app.innerHTML = `<div class="visual-backdrop" aria-hidden="true"><img class="room-photo" alt="" /></div><div class="moon-orb" aria-hidden="true"></div><canvas id="scene"></canvas><div class="weather-hud" aria-hidden="true"><span class="weather-state"></span><span></span></div><button class="sound-toggle" type="button" aria-label="ambient sound" aria-pressed="false"></button>`;
+app.innerHTML = `<div class="visual-backdrop" aria-hidden="true"><img class="room-photo" alt="" /><div class="cloud-layer" aria-hidden="true"></div><div class="sun-glow" aria-hidden="true"></div></div><div class="moon-orb" aria-hidden="true"></div><canvas id="scene"></canvas><div class="weather-hud" aria-hidden="true"><span class="weather-state"></span><span></span></div><button class="sound-toggle" type="button" aria-label="ambient sound" aria-pressed="false"></button>`;
 const visualBackdrop = document.querySelector('.visual-backdrop');
 const roomPhoto = document.querySelector('.room-photo');
 const moonOrb = document.querySelector('.moon-orb');
+const cloudLayer = document.querySelector('.cloud-layer');
+const sunGlow = document.querySelector('.sun-glow');
 const roomImages = {
   // Neutral master: same room geometry for every later lighting/weather pass.
   day: "url('/images/white-sea-study-master.png?v=0.0.28')",
   dawn: "url('/images/white-sea-study-blue-hour.png?v=0.0.28')",
   sunset: "url('/images/white-sea-study-golden-hour.png?v=0.0.28')",
-  overcast: "url('/images/white-sea-study-overcast.png?v=0.0.23')",
-  fog: "url('/images/white-sea-study-fog.png?v=0.0.23')",
-  rain: "url('/images/white-sea-study-rain.png?v=0.0.23')",
-  storm: "url('/images/white-sea-study-storm.png?v=0.0.23')",
+  overcast: "url('/images/white-sea-study-overcast.png?v=0.0.29')",
+  fog: "url('/images/white-sea-study-fog.png?v=0.0.29')",
+  rain: "url('/images/white-sea-study-rain.png?v=0.0.29')",
+  storm: "url('/images/white-sea-study-storm.png?v=0.0.29')",
   night: "url('/images/white-sea-study-night.png?v=0.0.28')",
   moonFog: "url('/images/white-sea-study-moon-fog-no-moon.png?v=0.0.24')"
 };
@@ -114,10 +116,13 @@ const weatherModes=[
   {test:c=>c<=99, kind:'storm', name:'风雨', sky:'#aebdc5', sea:'#637f89', light:'#c8d7e4', intensity:.3, lamp:2.45, filter:'saturate(.48) brightness(.76)'}
 ];
 let currentMode=weatherModes[0], lastNight=false, weatherReady=false;
+let sunriseMs=0, sunsetMs=0;
 function updateSolarClock(now=new Date()){
   const parts=new Intl.DateTimeFormat('en-US',{timeZone:'America/Los_Angeles',hour:'numeric',minute:'numeric',second:'numeric',hour12:false}).formatToParts(now);
   const get=k=>Number(parts.find(p=>p.type===k)?.value||0); const solarHour=get('hour')+get('minute')/60+get('second')/3600;
-  const daylight=Math.max(0,Math.sin((solarHour-6)/12*Math.PI)), night=daylight<.08;
+  const sunriseHour=sunriseMs ? new Date(sunriseMs).getHours()+new Date(sunriseMs).getMinutes()/60 : 6;
+  const sunsetHour=sunsetMs ? new Date(sunsetMs).getHours()+new Date(sunsetMs).getMinutes()/60 : 18;
+  const daylight=Math.max(0,Math.min(1,(solarHour-sunriseHour)/Math.max(.1,sunsetHour-sunriseHour))), night=(sunriseMs&&sunsetMs) ? (now.getTime()<sunriseMs||now.getTime()>sunsetMs) : daylight<.08;
   // Synodic-month approximation anchored to a known new moon. This keeps the
   // moon phase tied to the actual calendar date without adding another API.
   const knownNewMoon=Date.UTC(2000,0,6,18,14);
@@ -182,13 +187,21 @@ function updateSolarClock(now=new Date()){
   const moonX=Math.max(-22,Math.min(22,Math.sin(moonAzimuth)*22));
   const moonY=Math.max(-18,Math.min(18,(moonAltitude*180/Math.PI-35)*-.32));
   moonOrb.style.transform=`translate(${moonX}vw,${moonY}vh)`;
+  const sunVisibility=Math.max(0,Math.sin(solarAltitude))*weatherVisibility;
+  sunGlow.style.opacity=String(sunVisibility*.24);
+  sunGlow.style.transform=`translate(${Math.max(-18,Math.min(18,Math.sin(solarAzimuth)*22))}vw,${Math.max(-20,Math.min(18,(solarAltitude*180/Math.PI-32)*-.34))}vh)`;
 }
 async function syncSanFranciscoWeather(){
   const label=document.querySelector('.weather-state');
   try{
-    const r=await fetch(`https://api.open-meteo.com/v1/forecast?latitude=37.7749&longitude=-122.4194&current=temperature_2m,weather_code,wind_speed_10m&timezone=America%2FLos_Angeles&_=${Date.now()}`,{cache:'no-store'});
+    const r=await fetch(`https://api.open-meteo.com/v1/forecast?latitude=37.7749&longitude=-122.4194&current=temperature_2m,weather_code,wind_speed_10m,cloud_cover&daily=sunrise,sunset&forecast_days=1&timezone=America%2FLos_Angeles&_=${Date.now()}`,{cache:'no-store'});
     const data=await r.json(); const current=data.current; const mode=weatherModes.find(x=>x.test(current.weather_code))||weatherModes[1]; currentMode=mode; weatherReady=true;
+    sunriseMs=Date.parse(data.daily?.sunrise?.[0]||''); sunsetMs=Date.parse(data.daily?.sunset?.[0]||'');
     document.documentElement.style.setProperty('--weather-sky',mode.sky); document.documentElement.style.setProperty('--weather-sea',mode.sea); document.documentElement.style.setProperty('--weather-filter',mode.filter); document.body.classList.toggle('rain',current.weather_code>=51);
+    const cover=Number.isFinite(current.cloud_cover)?current.cloud_cover:0;
+    const cloudState=mode.kind==='storm'?'storm':mode.kind==='fog'?'fog':cover>=75?'overcast':cover>=35?'scattered':'clear';
+    document.body.dataset.cloud=cloudState;
+    document.documentElement.style.setProperty('--cloud-speed',`${Math.max(18,90-(current.wind_speed_10m||0)*2)}s`);
     sun.color.set(mode.light); weatherLight.color.set(mode.light); updateSolarClock();
     if(rainGain&&audioContext.state==='running') rainGain.gain.setTargetAtTime(current.weather_code>=51?.22:0,audioContext.currentTime,.8);
     label.textContent=`旧金山 · ${mode.name} · ${Math.round(current.temperature_2m)}°C`;
