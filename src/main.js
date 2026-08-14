@@ -158,8 +158,10 @@ function renderWindowScene(time){
   c.save(); c.globalAlpha=.06+.12*(1-cloudAmount); c.strokeStyle=liveSky.night?'#5fadc3':'#d9f3f5'; c.lineWidth=1;
   for(let i=0;i<(mobile?18:34);i++){ const y=h*.59+i*i*.18; const drift=Math.sin(time*.0004+i)*12; c.beginPath(); c.moveTo((i*83+drift)%w,y); c.lineTo((i*83+drift+35+(i%4)*25)%w,y); c.stroke(); } c.restore();
   // Animated near/far wave bands: subtle perspective motion over the photographic sea.
-  c.save(); c.beginPath(); c.rect(w*.29,h*.43,w*.57,h*.34); c.clip();
-  const seaTop=h*.48, seaBottom=h*.76, waveCount=mobile?18:30;
+  // Keep the animated glints inside the unobstructed middle of the window;
+  // the photograph already contains the correct furniture occlusion.
+  c.save(); c.beginPath(); c.moveTo(w*.30,h*.47); c.lineTo(w*.72,h*.47); c.lineTo(w*.72,h*.70); c.lineTo(w*.30,h*.70); c.closePath(); c.clip();
+  const seaTop=h*.49, seaBottom=h*.69, waveCount=mobile?16:26;
   for(let i=0;i<waveCount;i++){
     const p=i/(waveCount-1), y=seaTop+p*(seaBottom-seaTop), amp=1.2+p*3.8;
     c.globalAlpha=(.035+.06*p)*liveSky.weatherVisibility; c.strokeStyle=liveSky.night?'#b9dce3':'#f7ffff'; c.lineWidth=.7+p*.8;
