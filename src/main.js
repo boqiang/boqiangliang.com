@@ -101,19 +101,19 @@ function toggleAmbience(){
     // Keep the room tone barely audible; the ocean should be the foreground sound.
     const toneGain=audioContext.createGain(); toneGain.gain.value=.006; low.connect(toneGain); high.connect(toneGain); toneGain.connect(master);
     const buffer=audioContext.createBuffer(1,audioContext.sampleRate*2,audioContext.sampleRate); const data=buffer.getChannelData(0); for(let i=0;i<data.length;i++) data[i]=(Math.random()*2-1)*.25;
-    const hush=audioContext.createBufferSource(); hush.buffer=buffer; hush.loop=true; const filter=audioContext.createBiquadFilter(); filter.type='lowpass'; filter.frequency.value=850; const hushGain=audioContext.createGain(); hushGain.gain.value=.12;
+    const hush=audioContext.createBufferSource(); hush.buffer=buffer; hush.loop=true; const filter=audioContext.createBiquadFilter(); filter.type='lowpass'; filter.frequency.value=420; const hushGain=audioContext.createGain(); hushGain.gain.value=.035;
     hush.connect(filter); filter.connect(hushGain); hushGain.connect(master);
     // A low, slowly breathing noise bed gives the sea a natural wash. The
     // LFO makes each swell arrive and recede instead of sounding like a flat hiss.
     const ocean=audioContext.createBufferSource(); ocean.buffer=buffer; ocean.loop=true;
-    const oceanFilter=audioContext.createBiquadFilter(); oceanFilter.type='lowpass'; oceanFilter.frequency.value=900; oceanFilter.Q.value=.3;
-    oceanGain=audioContext.createGain(); oceanGain.gain.value=.5;
+    const oceanFilter=audioContext.createBiquadFilter(); oceanFilter.type='lowpass'; oceanFilter.frequency.value=480; oceanFilter.Q.value=.2;
+    oceanGain=audioContext.createGain(); oceanGain.gain.value=.42;
     ocean.connect(oceanFilter); oceanFilter.connect(oceanGain); oceanGain.connect(master);
     const swell=audioContext.createOscillator(); swell.type='sine'; swell.frequency.value=.075;
     const swellDepth=audioContext.createGain(); swellDepth.gain.value=.18; swell.connect(swellDepth); swellDepth.connect(oceanGain.gain);
     const foam=audioContext.createBufferSource(); foam.buffer=buffer; foam.loop=true;
-    const foamFilter=audioContext.createBiquadFilter(); foamFilter.type='bandpass'; foamFilter.frequency.value=1450; foamFilter.Q.value=.45;
-    const foamGain=audioContext.createGain(); foamGain.gain.value=.18; foam.connect(foamFilter); foamFilter.connect(foamGain); foamGain.connect(master);
+    const foamFilter=audioContext.createBiquadFilter(); foamFilter.type='bandpass'; foamFilter.frequency.value=820; foamFilter.Q.value=.28;
+    const foamGain=audioContext.createGain(); foamGain.gain.value=.055; foam.connect(foamFilter); foamFilter.connect(foamGain); foamGain.connect(master);
     const rain=audioContext.createBufferSource(); rain.buffer=buffer; rain.loop=true; const rainFilter=audioContext.createBiquadFilter(); rainFilter.type='bandpass'; rainFilter.frequency.value=3200; rainFilter.Q.value=.5; rainGain=audioContext.createGain(); rainGain.gain.value=0; rain.connect(rainFilter); rainFilter.connect(rainGain); rainGain.connect(master);
     low.start(); high.start(); hush.start(); ocean.start(); swell.start(); foam.start(); rain.start(); ambience={master};
   }
@@ -121,10 +121,6 @@ function toggleAmbience(){
     const button=document.querySelector('.sound-toggle'); const on=button.getAttribute('aria-pressed')!=='true'; ambience.master.gain.setTargetAtTime(on?.16:0,audioContext.currentTime,.25); button.setAttribute('aria-pressed',String(on)); button.textContent=on?'♫ 静谧环境音已开启':'♫ 开启静谧环境音';
 }
 document.querySelector('.sound-toggle').addEventListener('click',toggleAmbience);
-// AudioContext autoplay is blocked until the visitor interacts with the page.
-// Start the quiet room ambience on that first interaction, without adding UI text.
-addEventListener('pointerdown',()=>{ if(!audioContext) toggleAmbience(); },{once:true});
-addEventListener('keydown',()=>{ if(!audioContext) toggleAmbience(); },{once:true});
 const weatherModes=[
   {test:c=>c===0, kind:'clear', name:'晴朗', sky:'#e9f3f7', sea:'#a8c9d2', light:'#fff3d2', intensity:1.15, lamp:1.15, filter:'saturate(.92) brightness(1.04)'},
   {test:c=>c===45||c===48, kind:'fog', name:'雾天', sky:'#d9e0e2', sea:'#9eb8bf', light:'#dce6ea', intensity:.58, lamp:1.8, filter:'saturate(.62) brightness(.93)'},
@@ -155,20 +151,6 @@ function renderWindowScene(time){
   const cloudAmount=Math.max(0,Math.min(1,(currentWeather.cloudCover||0)/100));
   c.save(); c.globalAlpha=.06+.20*cloudAmount; c.filter=`blur(${8+cloudAmount*15}px)`; c.fillStyle=liveSky.night?'#091522':'#ffffff';
   for(let i=0;i<(mobile?3:5);i++){ const x=((i*.31*w + time*(.004+(currentWeather.wind||0)*.00008))%(w+260))-130; const y=h*(.16+(i%3)*.12); c.beginPath(); c.ellipse(x,y,130+i*18,28+i*8,0,0,Math.PI*2); c.fill(); } c.restore();
-  c.save(); c.globalAlpha=.06+.12*(1-cloudAmount); c.strokeStyle=liveSky.night?'#5fadc3':'#d9f3f5'; c.lineWidth=1;
-  for(let i=0;i<(mobile?18:34);i++){ const y=h*.59+i*i*.18; const drift=Math.sin(time*.0004+i)*12; c.beginPath(); c.moveTo((i*83+drift)%w,y); c.lineTo((i*83+drift+35+(i%4)*25)%w,y); c.stroke(); } c.restore();
-  // Animated near/far wave bands: subtle perspective motion over the photographic sea.
-  // Keep the animated glints inside the unobstructed middle of the window;
-  // the photograph already contains the correct furniture occlusion.
-  c.save(); c.beginPath(); c.moveTo(w*.30,h*.47); c.lineTo(w*.72,h*.47); c.lineTo(w*.72,h*.70); c.lineTo(w*.30,h*.70); c.closePath(); c.clip();
-  const seaTop=h*.49, seaBottom=h*.69, waveCount=mobile?16:26;
-  for(let i=0;i<waveCount;i++){
-    const p=i/(waveCount-1), y=seaTop+p*(seaBottom-seaTop), amp=1.2+p*3.8;
-    c.globalAlpha=(.035+.06*p)*liveSky.weatherVisibility; c.strokeStyle=liveSky.night?'#b9dce3':'#f7ffff'; c.lineWidth=.7+p*.8;
-    c.beginPath();
-    for(let x=w*.28;x<w*.9;x+=10){ const phase=x*.018+i*.83+time*.0012*(.45+p); const yy=y+Math.sin(phase)*amp+Math.sin(phase*.43+1.7)*amp*.45; if(x===w*.28)c.moveTo(x,yy);else c.lineTo(x,yy); }
-    c.stroke();
-  } c.restore();
   if(currentWeather.precipitation>0 || currentMode.kind==='rain' || currentMode.kind==='storm'){
     c.save(); c.globalAlpha=.20+.35*Math.min(1,currentWeather.precipitation||.4); c.strokeStyle='#d8edf2'; c.lineWidth=1;
     for(let i=0;i<(mobile?40:80);i++){ const x=(i*47+time*.18*(1+(currentWeather.wind||0)/30))%w; const y=(i*31+time*.42)%h; c.beginPath(); c.moveTo(x,y); c.lineTo(x-7,y+22); c.stroke(); } c.restore();
