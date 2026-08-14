@@ -91,7 +91,7 @@ const panel=document.querySelector('.book-panel'), chapter=document.querySelecto
 function showChapter(index){ const cat=categories[index]; chapter.innerHTML=`<p class="kicker">CHAPTER 0${index+1} / ${cat.subtitle}</p><h2>${cat.title}</h2><p class="blurb">${cat.blurb}</p><div class="objects">${cat.entries.map((e,n)=>`<div class="object"><span>0${n+1}</span><b>${e}</b><i></i></div>`).join('')}</div>`; panel.classList.add('visible'); panel.setAttribute('aria-hidden','false'); }
 function enterBook(index){ selected=index; mode='book'; showChapter(index); books.forEach((b,i)=>b.scale.setScalar(i===index?1.12:.92)); const p=books[index].position; targetCam.set(p.x*.18,2.85,1.0); targetLook.set(p.x*.2,2.4,-3.5); document.querySelector('.room-state').textContent=`CHAPTER 0${index+1} · ${categories[index].subtitle}`; }
 function leaveBook(){ mode='room'; panel.classList.remove('visible'); panel.setAttribute('aria-hidden','true'); targetCam.set(0,3.05,10.8); targetLook.set(0,2.7,0); books.forEach(b=>b.scale.setScalar(1)); document.querySelector('.room-state').textContent='THE STUDY · 01'; }
-let audioContext, ambience, rainGain;
+let audioContext, ambience, rainGain, oceanGain;
 function toggleAmbience(){
   if(!audioContext){
     audioContext=new (window.AudioContext||window.webkitAudioContext)();
@@ -102,14 +102,28 @@ function toggleAmbience(){
     const buffer=audioContext.createBuffer(1,audioContext.sampleRate*2,audioContext.sampleRate); const data=buffer.getChannelData(0); for(let i=0;i<data.length;i++) data[i]=(Math.random()*2-1)*.25;
     const hush=audioContext.createBufferSource(); hush.buffer=buffer; hush.loop=true; const filter=audioContext.createBiquadFilter(); filter.type='lowpass'; filter.frequency.value=850; const hushGain=audioContext.createGain(); hushGain.gain.value=.12;
     hush.connect(filter); filter.connect(hushGain); hushGain.connect(master);
+    // A low, slowly breathing noise bed gives the sea a natural wash. The
+    // LFO makes each swell arrive and recede instead of sounding like a flat hiss.
+    const ocean=audioContext.createBufferSource(); ocean.buffer=buffer; ocean.loop=true;
+    const oceanFilter=audioContext.createBiquadFilter(); oceanFilter.type='lowpass'; oceanFilter.frequency.value=620; oceanFilter.Q.value=.35;
+    oceanGain=audioContext.createGain(); oceanGain.gain.value=.025;
+    ocean.connect(oceanFilter); oceanFilter.connect(oceanGain); oceanGain.connect(master);
+    const swell=audioContext.createOscillator(); swell.type='sine'; swell.frequency.value=.075;
+    const swellDepth=audioContext.createGain(); swellDepth.gain.value=.022; swell.connect(swellDepth); swellDepth.connect(oceanGain.gain);
+    const foam=audioContext.createBufferSource(); foam.buffer=buffer; foam.loop=true;
+    const foamFilter=audioContext.createBiquadFilter(); foamFilter.type='bandpass'; foamFilter.frequency.value=980; foamFilter.Q.value=.55;
+    const foamGain=audioContext.createGain(); foamGain.gain.value=.006; foam.connect(foamFilter); foamFilter.connect(foamGain); foamGain.connect(master);
     const rain=audioContext.createBufferSource(); rain.buffer=buffer; rain.loop=true; const rainFilter=audioContext.createBiquadFilter(); rainFilter.type='bandpass'; rainFilter.frequency.value=3200; rainFilter.Q.value=.5; rainGain=audioContext.createGain(); rainGain.gain.value=0; rain.connect(rainFilter); rainFilter.connect(rainGain); rainGain.connect(master);
-    low.start(); high.start(); hush.start(); rain.start(); ambience={master};
+    low.start(); high.start(); hush.start(); ocean.start(); swell.start(); foam.start(); rain.start(); ambience={master};
   }
   if(audioContext.state==='suspended') audioContext.resume();
     const button=document.querySelector('.sound-toggle'); const on=button.getAttribute('aria-pressed')!=='true'; ambience.master.gain.setTargetAtTime(on?.045:0,audioContext.currentTime,.25); button.setAttribute('aria-pressed',String(on)); button.textContent=on?'♫ 静谧环境音已开启':'♫ 开启静谧环境音';
 }
 document.querySelector('.sound-toggle').addEventListener('click',toggleAmbience);
-addEventListener('pointerdown',()=>{ if(document.body.classList.contains('rain') && !audioContext) toggleAmbience(); },{once:true});
+// AudioContext autoplay is blocked until the visitor interacts with the page.
+// Start the quiet room ambience on that first interaction, without adding UI text.
+addEventListener('pointerdown',()=>{ if(!audioContext) toggleAmbience(); },{once:true});
+addEventListener('keydown',()=>{ if(!audioContext) toggleAmbience(); },{once:true});
 const weatherModes=[
   {test:c=>c===0, kind:'clear', name:'晴朗', sky:'#e9f3f7', sea:'#a8c9d2', light:'#fff3d2', intensity:1.15, lamp:1.15, filter:'saturate(.92) brightness(1.04)'},
   {test:c=>c===45||c===48, kind:'fog', name:'雾天', sky:'#d9e0e2', sea:'#9eb8bf', light:'#dce6ea', intensity:.58, lamp:1.8, filter:'saturate(.62) brightness(.93)'},
